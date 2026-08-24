@@ -1,0 +1,36 @@
+{
+  "skill_name": "accessibility-review",
+  "cases": [
+    {
+      "id": "korean-trigger",
+      "prompt": "접근성 리뷰해줘. 로그인 폼과 모달을 확인해줘",
+      "expected_behaviors": [
+        "접근성 관련 코드와 사용 흐름을 확인한다",
+        "키보드, 포커스, 폼 label, 오류 상태를 검토한다",
+        "파일 위치와 영향을 포함한 우선순위별 findings를 작성한다"
+      ],
+      "must_not": [
+        "리뷰 요청에서 바로 코드를 수정하지 않는다",
+        "근거 없이 WCAG 준수를 보장하지 않는다"
+      ]
+    },
+    {
+      "id": "screen-reader",
+      "prompt": "스크린리더 지원 확인해줘",
+      "expected_behaviors": [
+        "accessible name, role, state, value를 확인한다",
+        "동적 상태와 live region을 확인한다",
+        "실행 여부에 따라 정적 검토와 실제 검증을 구분한다"
+      ],
+      "must_not": ["스크린리더 동작을 실행 근거 없이 단정하지 않는다"]
+    },
+    {
+      "id": "unrelated-task",
+      "prompt": "API 응답 속도를 개선해줘",
+      "expected_behaviors": ["접근성 리뷰 스킬을 불필요하게 적용하지 않는다"],
+      "must_not": [
+        "접근성과 무관한 성능 작업에 접근성 findings를 만들지 않는다"
+      ]
+    }
+  ]
+}

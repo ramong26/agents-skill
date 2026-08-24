@@ -1,0 +1,21 @@
+{
+  "skill_name": "frontend-fundamental-review",
+  "evals": [
+    {
+      "prompt": "프론트엔드 코드를 토스식으로 리뷰해줘",
+      "expected_output": "코드를 수정하지 않고 한국어로 리뷰하며, Readability·Cohesion·Coupling·Predictability 기준과 파일/줄 근거를 사용한다."
+    },
+    {
+      "prompt": "이 React 코드에서 props drilling과 과한 추상화를 봐줘",
+      "expected_output": "Coupling 관점에서 props drilling과 잘못된 공통화를 구분하고, 실제 근거와 최소 개선 방향을 제시한다."
+    },
+    {
+      "prompt": "프론트 코드의 중첩 삼항식과 너무 많은 책임을 가진 Hook을 찾아줘",
+      "expected_output": "Readability와 Coupling 기준으로 관련 위치를 찾고, 동작을 바꾸지 않는 작은 개선안을 한국어로 제시한다."
+    },
+    {
+      "prompt": "접근성 리뷰해줘",
+      "expected_output": "접근성만 요청된 경우 이 스킬의 범위를 넓히지 않고 accessibility-review를 우선 적용한다."
+    }
+  ]
+}

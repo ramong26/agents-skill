@@ -1,0 +1,21 @@
+{
+  "skill_name": "frontend-react-performance",
+  "evals": [
+    {
+      "prompt": "Next.js 페이지의 API 호출이 너무 느린데 성능을 개선해줘",
+      "expected_output": "데이터 요청의 순차 실행과 렌더링 경계를 확인하고, 독립 요청 병렬화 등 근거 있는 최소 변경을 적용한 뒤 검증한다."
+    },
+    {
+      "prompt": "React 컴포넌트의 불필요한 리렌더링을 리뷰해줘",
+      "expected_output": "effect, 의존성, 파생 상태, memoization을 확인하되 실제 비용 근거 없는 최적화는 강제하지 않는다."
+    },
+    {
+      "prompt": "Next 번들 사이즈를 줄여줘",
+      "expected_output": "직접 import, 동적 로딩, third-party 지연 로딩과 사용하지 않는 의존성을 우선 확인하고 동작을 유지한다."
+    },
+    {
+      "prompt": "접근성 관점에서 React 코드를 리뷰해줘",
+      "expected_output": "이 스킬의 성능 범위를 벗어난 접근성 전용 요청으로 판단하고 accessibility-review를 우선 적용한다."
+    }
+  ]
+}

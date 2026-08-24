@@ -1,0 +1,21 @@
+{
+  "skill_name": "frontend-ui-testing",
+  "evals": [
+    {
+      "prompt": "localhost 대시보드의 검색 버튼이 제대로 동작하는지 확인해줘",
+      "expected_output": "실제 진입부터 검색 행동과 결과 상태까지 실행하고, 페이지·콘솔·상호작용 근거를 한국어로 보고한다."
+    },
+    {
+      "prompt": "이 화면이 모바일에서 깨지는지 봐줘",
+      "expected_output": "모바일 화면에서 잘림·겹침·가로 스크롤·로딩 상태를 확인하고 관찰 근거를 남긴다."
+    },
+    {
+      "prompt": "프론트엔드 코드를 리뷰하고 리팩토링해줘",
+      "expected_output": "렌더링된 동작 검증이 필요한 부분은 확인하되, 일반적인 구조 리뷰는 frontend-fundamental-review와 refactor의 범위로 구분한다."
+    },
+    {
+      "prompt": "단위 테스트 코드만 리뷰해줘",
+      "expected_output": "렌더링 UI 검증 요청이 아니므로 이 스킬을 불필요하게 적용하지 않는다."
+    }
+  ]
+}
