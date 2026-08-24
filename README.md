@@ -31,6 +31,11 @@
 | `frontend-ui-testing` | 화면 렌더링, 상호작용, 반응형 레이아웃, 콘솔 오류를 검증합니다. |
 | `ai-agents-sdk` | OpenAI Agents SDK 앱, 도구·핸드오프·에이전트 평가 작업을 지원합니다. |
 | `refactor` | 기존 동작과 API를 유지하면서 필요한 범위만 리팩토링합니다. |
+| `nestjs-implementation` | NestJS 백엔드에 기존 구조·네이밍과 동일한 형태로 새 기능을 구현합니다. (실제 프로젝트 기반) |
+| `nextjs-implementation` | Next.js(App Router) 프론트에 FSD 레이어와 TanStack Query로 새 화면을 구현합니다. (실제 프로젝트 기반) |
+| `react-implementation` | Next.js가 아닌 React SPA에 표준 관례로 새 기능을 구현합니다. (표준 관례, 미검증) |
+| `spring-boot-implementation` | Spring Boot 백엔드에 표준 계층 구조로 새 기능을 구현합니다. (표준 관례, 미검증) |
+| `fastapi-implementation` | FastAPI 백엔드에 표준 구조로 새 엔드포인트를 구현합니다. (표준 관례, 미검증) |
 
 ## 작동 방식
 
@@ -45,6 +50,27 @@
 4. 선택된 스킬의 `SKILL.md`만 읽고 추천 순서대로 작업합니다.
 
 단일 파일 수정처럼 범위가 분명한 작업은 `skill-router`를 거치지 않습니다.
+
+## 전역 설치
+
+레포마다 `.agents/skills`를 복사하거나 링크로 연결하지 않고, [`skills`
+CLI](https://github.com/vercel-labs/skills)로 Codex의 사용자 전역 스킬
+경로(`~/.agents/skills`)에 한 번만 설치하면 이후 모든 프로젝트에서 자동으로
+사용할 수 있습니다.
+
+```bash
+npx skills add <이 레포 경로 또는 git URL> -g -a codex -s '*' -y
+```
+
+스킬을 추가하거나 수정한 뒤에는 전역 설치본을 갱신합니다.
+
+```bash
+npx skills update -g
+```
+
+Windows처럼 심볼릭 링크 권한이 없는 환경에서는 `copy` 방식으로 설치되므로,
+레포를 수정하면 반드시 위 `update` 명령을 실행해야 반영됩니다. 설치 상태는
+`npx skills ls -g -a codex`로 확인합니다.
 
 ## 검증
 

@@ -12,7 +12,7 @@ SKILLS_DIR = ROOT / ".agents" / "skills"
 
 
 def frontmatter(path: Path) -> dict[str, str]:
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = path.read_text(encoding="utf-8-sig").splitlines()
     if not lines or lines[0].strip() != "---":
         raise ValueError("missing YAML frontmatter")
 

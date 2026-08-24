@@ -1,0 +1,38 @@
+{
+  "skill_name": "fastapi-implementation",
+  "cases": [
+    {
+      "id": "new-feature-endpoint",
+      "prompt": "FastAPI 백엔드에 댓글 목록 조회 API 추가해줘",
+      "expected_behaviors": [
+        "기존 ORM·의존성 주입 방식을 먼저 확인한다",
+        "router.py/schemas.py/models.py/service.py로 파일을 나눈다",
+        "ORM 모델을 그대로 반환하지 않고 Pydantic 응답 스키마로 변환한다",
+        "새 라우터를 app/main.py에 include_router로 등록한다"
+      ],
+      "must_not": [
+        "response_model 없이 엔드포인트를 만들지 않는다"
+      ]
+    },
+    {
+      "id": "does-not-touch-schema-management",
+      "prompt": "게시글에 좋아요 기능 추가해줘",
+      "expected_behaviors": [
+        "요청하지 않은 DB 스키마 관리 방식(create_all 등)은 언급만 하고 임의로 바꾸지 않는다"
+      ],
+      "must_not": [
+        "Alembic 마이그레이션 설정을 요청 없이 새로 도입하지 않는다"
+      ]
+    },
+    {
+      "id": "non-fastapi-negative",
+      "prompt": "Spring Boot 프로젝트에 회원가입 API 추가해줘",
+      "expected_behaviors": [
+        "FastAPI 전용 스킬이므로 트리거하지 않는다고 판단한다"
+      ],
+      "must_not": [
+        "이 스킬의 Python 폴더 구조를 Spring Boot 프로젝트에 적용하지 않는다"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "skill_name": "nextjs-implementation",
+  "cases": [
+    {
+      "id": "new-entity-and-page",
+      "prompt": "댓글 목록을 보여주는 화면 만들어줘",
+      "expected_behaviors": [
+        "entities/comment에 api·model 파일을 만들고 ky로 fetch 함수를 작성한다",
+        "shared/constants/queryKey.ts의 queryKeys에 comments 키 팩토리를 추가한다",
+        "page/comments 슬라이스에 index.ts와 ui 컴포넌트를 만든다",
+        "app 라우트 파일은 page 슬라이스를 렌더링만 하고 로직을 두지 않는다"
+      ],
+      "must_not": [
+        "다른 슬라이스에서 entities/comment의 내부 경로(api/comment-api 등)를 직접 import하지 않는다"
+      ]
+    },
+    {
+      "id": "reuse-existing-provider",
+      "prompt": "새 데이터 패칭 화면 만들어줘, react-query 설정도 새로 해줘",
+      "expected_behaviors": [
+        "app/provider/MainProvider.tsx에 이미 있는 QueryClientProvider 설정을 재사용한다"
+      ],
+      "must_not": [
+        "이미 있는 QueryClientProvider와 별개로 새 Provider를 중복으로 만들지 않는다"
+      ]
+    },
+    {
+      "id": "respects-existing-slice-pattern",
+      "prompt": "post 슬라이스처럼 project 슬라이스 만들어줘",
+      "expected_behaviors": [
+        "entities/post, page/posts의 실제 파일 구조를 먼저 읽고 동일한 패턴으로 project 슬라이스를 만든다"
+      ],
+      "must_not": []
+    },
+    {
+      "id": "non-nextjs-negative",
+      "prompt": "Vite로 만든 React 프로젝트에 새 화면 추가해줘",
+      "expected_behaviors": [
+        "App Router 전용 스킬이므로 트리거하지 않는다고 판단한다"
+      ],
+      "must_not": [
+        "app 디렉터리 라우팅 관례를 Next.js가 아닌 프로젝트에 적용하지 않는다"
+      ]
+    }
+  ]
+}
