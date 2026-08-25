@@ -54,13 +54,26 @@
 ## 전역 설치
 
 레포마다 `.agents/skills`를 복사하거나 링크로 연결하지 않고, [`skills`
-CLI](https://github.com/vercel-labs/skills)로 Codex의 사용자 전역 스킬
-경로(`~/.agents/skills`)에 한 번만 설치하면 이후 모든 프로젝트에서 자동으로
-사용할 수 있습니다.
+CLI](https://github.com/vercel-labs/skills)로 각 에이전트의 사용자 전역 스킬
+경로에 한 번만 설치하면 이후 모든 프로젝트에서 자동으로 사용할 수 있습니다.
+
+Codex만 쓴다면:
 
 ```bash
 npx skills add <이 레포 경로 또는 git URL> -g -a codex -s '*' -y
 ```
+
+Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으로 나열합니다
+(콤마 아님). Claude Code의 에이전트 식별자는 `claude`가 아니라
+`claude-code`이며, 전역 스킬은 `.agents/skills`가 아니라 `.claude/skills`
+경로에 설치됩니다.
+
+```bash
+npx skills add <이 레포 경로 또는 git URL> -g -a codex claude-code -s '*' -y
+```
+
+설치 가능한 전체 에이전트 목록은 `-a` 없이 `npx skills add <경로>`를
+실행하면 인터랙티브 선택 화면에서 확인할 수 있습니다.
 
 스킬을 추가하거나 수정한 뒤에는 전역 설치본을 갱신합니다.
 
