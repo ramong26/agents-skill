@@ -6,13 +6,11 @@
 
 ```text
 .
-├── .agents/
-│   └── skills/
-│       └── <skill-name>/
-│           ├── SKILL.md
-│           ├── evals/       # 선택
-│           ├── references/  # 선택
-│           └── scripts/     # 선택
+├── <skill-name>/
+│   ├── SKILL.md
+│   ├── evals/       # 선택
+│   ├── references/  # 선택
+│   └── scripts/     # 선택
 ├── tools/
 ├── .github/
 ├── AGENTS.md
