@@ -8,7 +8,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS_DIR = ROOT / ".agents" / "skills"
+SKILLS_DIR = ROOT
 
 
 def frontmatter(path: Path) -> dict[str, str]:
@@ -66,7 +66,9 @@ def main() -> int:
     errors = [
         error
         for skill_dir in sorted(SKILLS_DIR.iterdir())
-        if skill_dir.is_dir() and not skill_dir.name.startswith(".")
+        if skill_dir.is_dir()
+        and not skill_dir.name.startswith(".")
+        and skill_dir.name != "tools"
         for error in validate_skill(skill_dir)
     ]
 

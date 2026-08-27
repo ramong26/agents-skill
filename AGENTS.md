@@ -6,7 +6,7 @@
 
 ## Repository structure
 
-- `.agents/skills/`: 실제 스킬
+- `<skill-name>/`: 실제 스킬
 - `tools/`: 스킬 레포 자체를 검사하는 도구
 - `.github/workflows/`: 자동 검증
 

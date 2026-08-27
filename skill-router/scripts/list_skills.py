@@ -25,7 +25,7 @@ def parse_frontmatter(path: Path) -> dict[str, str]:
 
 
 def default_roots() -> list[Path]:
-    roots: list[Path] = []
+    roots: list[Path] = [Path(__file__).resolve().parents[2]]
     current = Path.cwd().resolve()
     for directory in (current, *current.parents):
         roots.append(directory / ".agents" / "skills")
