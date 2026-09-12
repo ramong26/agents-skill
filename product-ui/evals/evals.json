@@ -1,0 +1,68 @@
+{
+  "skill_name": "product-ui",
+  "cases": [
+    {
+      "id": "auth-existing-components",
+      "prompt": "product-ui 스킬을 사용해서 이 React 프로젝트에 로그인과 회원가입 화면을 만들어줘. 브랜드는 현재 프로젝트 설정을 따라줘.",
+      "expected_behaviors": [
+        "package.json, 라우팅, 전역 스타일, 디자인 토큰, 기존 페이지와 컴포넌트를 먼저 확인한다",
+        "auth-page recipe와 form Layout Contract를 적용한다",
+        "실제 export와 사용법을 확인한 기존 입력·버튼 컴포넌트를 재사용한다",
+        "브라우저 검증과 anti-slop 검수의 실제 수행 여부를 구분해 보고한다"
+      ],
+      "must_not": [
+        "존재하지 않는 컴포넌트 또는 import 경로를 만든다",
+        "브랜드 색상이나 새 UI 라이브러리를 임의로 추가한다"
+      ]
+    },
+    {
+      "id": "list-native-fallback",
+      "prompt": "공용 UI 컴포넌트가 없는 Vite 앱에 사용자 목록과 빈 상태를 구현해줘. product-ui를 사용해줘.",
+      "expected_behaviors": [
+        "기존 CSS 방식을 확인하고 semantic HTML과 native control로 구현한다",
+        "list-page와 empty-state recipe를 사용한다",
+        "실제 table 요소와 데이터 영역의 모바일 가로 스크롤을 사용한다",
+        "공용 컴포넌트가 없어도 동일한 컨테이너와 간격 계약을 유지한다"
+      ],
+      "must_not": [
+        "한 번 쓰는 wrapper를 공용 컴포넌트로 추출한다",
+        "모바일에서 중요한 열을 임의로 숨긴다"
+      ]
+    },
+    {
+      "id": "no-design-tokens",
+      "prompt": "디자인 토큰이 없는 React 프로젝트에 설정 화면을 만들어줘. product-ui 기준으로 정리해줘.",
+      "expected_behaviors": [
+        "가까운 기존 화면의 반복 패턴을 먼저 찾는다",
+        "기준이 없을 때만 기본 Layout Contract를 사용한다",
+        "필요한 중립 local style을 화면 범위에 격리하고 임시 결정임을 보고한다"
+      ],
+      "must_not": [
+        "새 브랜드 팔레트, 폰트 또는 범용 토큰 시스템을 발명한다"
+      ]
+    },
+    {
+      "id": "anti-slop-unavailable",
+      "prompt": "product-ui로 대시보드를 구현해줘. 이 환경에는 kill-ai-slop이 설치되어 있지 않아.",
+      "expected_behaviors": [
+        "dashboard-page recipe로 핵심 업무와 정보 계층을 먼저 정한다",
+        "anti-slop-fallback.md로 수동 검수한다",
+        "kill-ai-slop scanner를 실행하지 않았다고 명확히 보고한다"
+      ],
+      "must_not": [
+        "kill-ai-slop을 실행했다고 주장한다",
+        "모든 정보를 같은 통계 카드로 만든다"
+      ]
+    },
+    {
+      "id": "backend-negative",
+      "prompt": "FastAPI 로그인 엔드포인트를 구현해줘.",
+      "expected_behaviors": [
+        "프론트엔드 제품 화면 구현 요청이 아니므로 product-ui를 적용하지 않는다"
+      ],
+      "must_not": [
+        "백엔드 작업에 Layout Contract나 페이지 recipe를 강제로 적용한다"
+      ]
+    }
+  ]
+}
