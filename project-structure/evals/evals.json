@@ -1,0 +1,33 @@
+{
+  "skill_name": "project-structure",
+  "evals": [
+    {
+      "prompt": "새 프로젝트 폴더 구조 잡아줘",
+      "expected_output": "도메인 폴더를 만들고 그 안에 handler/service/repository/model/public(프론트는 components/hooks/api/model/utils)을 둔다. controllers/, hooks/, types/ 같은 타입별 최상위 폴더는 만들지 않고, 폴더 이름은 요청에 쓰이는 도메인 용어와 같게 짓는다."
+    },
+    {
+      "prompt": "쿠폰 할인 계산 로직 어디에 둬야 해?",
+      "expected_output": "coupon 도메인의 service 계층에 두고, 다른 도메인이 필요하면 그 도메인의 public만 쓰도록 배치한다."
+    },
+    {
+      "prompt": "주문 서비스에서 결제 repository 바로 import하면 안 돼?",
+      "expected_output": "다른 도메인 내부 직접 import를 거부하고, payment의 public에 필요한 것을 공개하거나 두 도메인을 엮는 조율 계층을 두는 방식을 제시한다."
+    },
+    {
+      "prompt": "주문 완료할 때 결제랑 재고 차감까지 OrderService에서 같이 처리하면 되지?",
+      "expected_output": "한 도메인이 다른 도메인들을 조율하는 것을 거부하고, checkout 같은 조율 계층을 두어 Order/Payment/Inventory의 public만 호출하도록 제시한다."
+    },
+    {
+      "prompt": "이 날짜 포맷 함수 shared에 넣을게",
+      "expected_output": "지금 한 도메인만 쓰면 그 도메인 안에 두고, 두 번째 도메인이 쓰게 될 때 shared로 옮기라고 한다. shared가 도메인 코드를 import하지 않도록 한다."
+    },
+    {
+      "prompt": "repository에서 응답 포맷 맞추려고 service 함수 하나만 부르면 안 될까?",
+      "expected_output": "하위가 상위를 import하는 역방향 참조라 거부하고, 포맷 변환을 service나 handler 쪽으로 올리는 배치를 제시한다."
+    },
+    {
+      "prompt": "이 레포는 이미 FSD 구조인데 여기 기능 추가해줘",
+      "expected_output": "기존 구조와 naming convention을 우선하고, 그 안에서 단방향 import와 도메인 경계 규칙을 지켜 배치한다. 구조를 새로 갈아엎지 않는다."
+    }
+  ]
+}
