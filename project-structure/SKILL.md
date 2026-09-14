@@ -1,6 +1,11 @@
 ---
 name: project-structure
-description: This skill should be used when the user asks how to organize or lay out code — e.g. "폴더 구조 잡아줘", "이 코드 어디에 둬야 해?", "도메인 나눠줘", "구조 이렇게 가는 게 맞아?", "구조 정리해줘", "shared에 둬도 돼?", "set up the project structure", "where should this file live". It mandates a structure where one task maps to one folder: colocated domain folders, downward-only imports, cross-domain access through a public interface, and shared/ only for code used by two or more domains. Do not use for implementing the feature logic itself.
+description: >-
+  This skill should be used when the user asks how to organize or lay out code.
+  It mandates a structure where one task maps to one folder: colocated domain
+  folders, downward-only imports, cross-domain access through a public interface,
+  and shared/ only for code used by two or more domains. Do not use for
+  implementing the feature logic itself.
 ---
 
 # Project Structure
