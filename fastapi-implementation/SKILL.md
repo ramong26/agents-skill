@@ -40,6 +40,36 @@ app/<feature>/
 - 비즈니스 로직은 `service.py`에 함수 또는 클래스로 두고, 라우터에서 `Depends()`로 주입한다.
 - DB 세션은 `Depends(get_db)` 같은 공용 의존성을 재사용한다. 이미 있는 세션 관리 방식을 새로 만들지 않는다.
 
+### `Annotated` 매개변수 선언
+
+`Annotated` 안에는 `Query(...)`, `Depends(...)` 같은 FastAPI 메타데이터를 넣고 기본값은 밖에 둔다.
+
+```python
+db: Annotated[Session, Depends(get_db)]
+page: Annotated[int, Query(ge=1)] = 1
+sort_by: Annotated[SortBy, Query(alias="sortBy")] = "dateTime"
+```
+
+- `Query(None)`과 `= Depends(get_db)`는 쓰지 않는다.
+- alias는 기존 API 이름을 유지하고, 이미 있는 변환 함수를 재사용한다.
+
+인증 의존성도 동일하다.
+
+```python
+credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]
+db: Annotated[Session, Depends(get_db)]
+```
+
+상세 조회는 `None` 검사 후 기존 변환 함수를 호출한다.
+
+```python
+if meeting is None:
+    raise NOT_FOUND_MEETING
+return to_meeting_response(meeting)
+```
+
+Pylance가 표시하는 `(class) MeetingsResponse`나 `__pydantic_*` 목록은 Pydantic 클래스 정보이며 오류가 아니다.
+
 ## 에러 처리
 
 - 실패 케이스는 `HTTPException(status_code=..., detail=...)`으로 명시적인 상태 코드와 함께 던진다.

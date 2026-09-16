@@ -25,6 +25,21 @@
       ]
     },
     {
+      "id": "annotated-query-and-dependency-syntax",
+      "prompt": "FastAPI 회의 목록 조회의 Query와 Depends 선언 오류를 수정하고 상세 조회도 안전하게 만들어줘",
+      "expected_behaviors": [
+        "Query와 Depends 메타데이터는 Annotated 안에 두고 기본값은 매개변수 바깥에 둔다",
+        "Query alias와 검증 조건을 기존 API 이름에 맞춰 유지한다",
+        "상세 조회 결과가 None인지 검사한 뒤 기존 변환 함수를 재사용한다",
+        "Pylance의 Pydantic 클래스 설명을 실제 오류로 취급하지 않는다"
+      ],
+      "must_not": [
+        "Annotated 안에 Query(None) 같은 기본값을 넣지 않는다",
+        "= Depends(get_db)를 의존성 매개변수 기본값으로 중복 작성하지 않는다",
+        "이미 있는 변환 함수 대신 새 변환 함수를 추가하지 않는다"
+      ]
+    },
+    {
       "id": "non-fastapi-negative",
       "prompt": "Spring Boot 프로젝트에 회원가입 API 추가해줘",
       "expected_behaviors": [
