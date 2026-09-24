@@ -11,6 +11,8 @@
 │   ├── evals/       # 선택
 │   ├── references/  # 선택
 │   └── scripts/     # 선택
+├── output/          # 생성한 산출물 (스킬 아님)
+├── tmp/             # 임시 파일 (스킬 아님)
 ├── tools/
 ├── .github/
 ├── AGENTS.md
@@ -19,21 +21,22 @@
 
 ## 스킬 목록
 
-| 스킬 | 설명 |
-| --- | --- |
-| `skill-router` | 복합 작업에 맞는 스킬을 최대 3개까지 제안하고 선택을 기다립니다. |
-| `git-workflow` | 브랜치, 커밋, PR의 이름·형식과 작업 절차를 관리합니다. |
-| `accessibility-review` | 웹 접근성, 키보드 사용, 스크린리더 지원을 검토합니다. |
-| `frontend-fundamental-review` | 프론트엔드 코드의 가독성, 응집도, 결합도, 예측 가능성을 리뷰합니다. |
-| `frontend-react-performance` | React·Next.js의 렌더링, 데이터 로딩, 번들 및 성능 문제를 다룹니다. |
-| `frontend-ui-testing` | 화면 렌더링, 상호작용, 반응형 레이아웃, 콘솔 오류를 검증합니다. |
-| `ai-agents-sdk` | OpenAI Agents SDK 앱, 도구·핸드오프·에이전트 평가 작업을 지원합니다. |
-| `refactor` | 기존 동작과 API를 유지하면서 필요한 범위만 리팩토링합니다. |
-| `nestjs-implementation` | NestJS 백엔드에 기존 구조·네이밍과 동일한 형태로 새 기능을 구현합니다. (실제 프로젝트 기반) |
-| `nextjs-implementation` | Next.js(App Router) 프론트에 FSD 레이어와 TanStack Query로 새 화면을 구현합니다. (실제 프로젝트 기반) |
-| `react-implementation` | Next.js가 아닌 React SPA에 표준 관례로 새 기능을 구현합니다. (표준 관례, 미검증) |
-| `spring-boot-implementation` | Spring Boot 백엔드에 표준 계층 구조로 새 기능을 구현합니다. (표준 관례, 미검증) |
-| `fastapi-implementation` | FastAPI 백엔드에 표준 구조로 새 엔드포인트를 구현합니다. (표준 관례, 미검증) |
+| 스킬                            | 설명                                                                                                            |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `skill-router`                  | 복합 작업에 맞는 스킬을 최대 3개까지 제안하고 선택을 기다립니다.                                                |
+| `git-workflow`                  | 브랜치, 커밋, PR의 이름·형식과 작업 절차를 관리합니다.                                                          |
+| `development-planning-document` | 개발 요청·기능명세서를 개발자용 상세 기획서로 정리하고, 3개 전문 에이전트의 병렬 초안을 팀장이 통합·검증합니다. |
+| `accessibility-review`          | 웹 접근성, 키보드 사용, 스크린리더 지원을 검토합니다.                                                           |
+| `frontend-fundamental-review`   | 프론트엔드 코드의 가독성, 응집도, 결합도, 예측 가능성을 리뷰합니다.                                             |
+| `frontend-react-performance`    | React·Next.js의 렌더링, 데이터 로딩, 번들 및 성능 문제를 다룹니다.                                              |
+| `frontend-ui-testing`           | 화면 렌더링, 상호작용, 반응형 레이아웃, 콘솔 오류를 검증합니다.                                                 |
+| `ai-agents-sdk`                 | OpenAI Agents SDK 앱, 도구·핸드오프·에이전트 평가 작업을 지원합니다.                                            |
+| `refactor`                      | 기존 동작과 API를 유지하면서 필요한 범위만 리팩토링합니다.                                                      |
+| `nestjs-implementation`         | NestJS 백엔드에 기존 구조·네이밍과 동일한 형태로 새 기능을 구현합니다. (실제 프로젝트 기반)                     |
+| `nextjs-implementation`         | Next.js(App Router) 프론트에 FSD 레이어와 TanStack Query로 새 화면을 구현합니다. (실제 프로젝트 기반)           |
+| `react-implementation`          | Next.js가 아닌 React SPA에 표준 관례로 새 기능을 구현합니다. (표준 관례, 미검증)                                |
+| `spring-boot-implementation`    | Spring Boot 백엔드에 표준 계층 구조로 새 기능을 구현합니다. (표준 관례, 미검증)                                 |
+| `fastapi-implementation`        | FastAPI 백엔드에 표준 구조로 새 엔드포인트를 구현합니다. (표준 관례, 미검증)                                    |
 
 ## 작동 방식
 

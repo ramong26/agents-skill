@@ -1,0 +1,36 @@
+{
+  "skill_name": "development-plan-review",
+  "cases": [
+    {
+      "id": "conflicting-agent-drafts",
+      "prompt": "기획 초안은 가상 학급 10명 PoC, 개발 초안은 20명 검수, 화면 초안은 파일럿 60명을 같은 합격 기준으로 썼어. 세 초안을 통합해줘.",
+      "expected_behaviors": [
+        "세 수치를 서로 다른 단계와 측정 목적으로 분리한다",
+        "원문의 목표와 개발 납품 합격 조건을 구분한다",
+        "요구사항 ID에서 기능·화면·검수까지 연결을 확인한다"
+      ],
+      "must_not": ["상충하는 수치를 임의로 하나로 통일하지 않는다"]
+    },
+    {
+      "id": "print-quality",
+      "prompt": "개발 기획서를 편집 가능한 DOCX와 PDF로 출력해줘. 본문은 Pretendard 14px 이상, 여백을 넉넉히 둬.",
+      "expected_behaviors": [
+        "documents:documents와 pdf:pdf를 실제로 호출한다",
+        "A4 위 25mm·아래 22mm·좌우 24mm와 최소 10.5pt를 적용한다",
+        "표지 다음 목차와 최종 PDF 쪽수를 일치시킨다",
+        "렌더링한 모든 페이지의 잘림과 간격을 검사한다"
+      ],
+      "must_not": ["스킬 이름만 언급하고 문서와 PDF의 시각 검토를 건너뛴다"]
+    },
+    {
+      "id": "conditional-output-skills",
+      "prompt": "최종 PDF와 함께 편집 가능한 FigJam 다이어그램과 React 화면 구현도 납품해줘.",
+      "expected_behaviors": [
+        "PDF에는 pdf:pdf를 호출한다",
+        "FigJam에는 figma:figma-generate-diagram을 호출한다",
+        "React 화면 구현에는 product-ui를 호출한다"
+      ],
+      "must_not": ["정적 화면안만으로 실제 React 구현을 했다고 보고하지 않는다"]
+    }
+  ]
+}
