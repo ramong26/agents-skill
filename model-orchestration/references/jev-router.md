@@ -4,7 +4,9 @@ TypeSafe의 공식 질문 타입에는 `Router`가 없다. 고정 후보에서 �
 
 ## 선택 요청
 
-복수 후보일 때만 공식 `typesafe-sdk`의 `TypeSafeClient.system_one()`에 `model="jev-latest"`를 명시해 호출한다. 선택지는 실제 위임 도구의 `model` 입력이 지원하는 모델 ID만 쓴다.
+복수 후보일 때만 공식 `typesafe-sdk`의 `TypeSafeClient.system_one()`에 `model="jev-latest"`를 명시해 호출한다. 실행 환경에 `typesafe-sdk` 패키지와 `TYPESAFE_API_KEY`를 미리 설정한다. 선택지는 실제 위임 도구의 `model` 입력이 지원하는 모델 ID만 쓴다.
+
+Run this as a one-off local SDK invocation when no TypeSafe tool is connected; do not add a persistent script for the model judgment. Use the actual response before dispatching any worker.
 
 ```python
 import math
@@ -58,7 +60,7 @@ Provide only a short summary, task type, risk, role, candidate IDs, and descript
 
 ## Route and dispatch
 
-- Use the exact `selected_model_id` as the chosen delegation tool's actual `model` override. Do not put it only in the task prompt. For `mcp__codex_app__create_thread`, pass the same value in its `model` argument.
+- Use the exact `selected_model_id` as the native sub-agent tool's actual `model` override (for example, `collaboration.spawn_agent(model=selected_model_id)`). Do not put it only in the task prompt. Use `mcp__codex_app__create_thread(model=selected_model_id)` only when the user explicitly asked to create a separate Codex task and the tool is allowed.
 - Consider `confidence` together with task risk; it is not a correctness guarantee. Do not impose a universal threshold. If the decision is too uncertain for the task's consequences, stop before dispatch and ask the user or get an explicit model choice.
 - If only one model is supported, use it without an API call and report `single supported candidate`; do not claim Jev selected it.
 - If the SDK, `TYPESAFE_API_KEY`, request, confidence value, or candidate validation is unavailable, do not dispatch under a default model. Report the missing setup or selection failure. Never ask the user to paste an API key into chat.
