@@ -1,0 +1,10 @@
+Normal ['22']
+Heading1 ['36']
+Heading2 ['28']
+DOCX content and fonts passed; images=2 tables=2 explicit page breaks=2
+PDF pages 3
+Page 1 fonts [('/F1', '/Helvetica'), ('/F2+0', '/AAAAAA+MalgunGothicBold'), ('/F3+0', '/AAAAAA+MalgunGothic')]
+Page 2 fonts [('/F1', '/Helvetica'), ('/F2+0', '/AAAAAA+MalgunGothicBold'), ('/F3+0', '/AAAAAA+MalgunGothic')]
+Page 3 fonts [('/F1', '/Helvetica'), ('/F2+0', '/AAAAAA+MalgunGothicBold'), ('/F3+0', '/AAAAAA+MalgunGothic')]
+PDF text sizes [10.5, 11.0, 14.0, 18.0]
+Screen label minimum effective size 11.271581961345742
