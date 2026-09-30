@@ -26,7 +26,7 @@
 | `skill-router`                  | 복합 작업에 맞는 스킬을 최대 3개까지 제안하고 선택을 기다립니다.                                                |
 | `model-orchestration`           | 채팅에서 지정한 모델로 독립 작업을 병렬 위임하고, 상위 세션이 결과를 통합·검토합니다.                          |
 | `git-workflow`                  | 브랜치, 커밋, PR의 이름·형식과 작업 절차를 관리합니다.                                                          |
-| `development-planning-document` | 개발 요청·기능명세서를 개발자용 상세 기획서로 정리하고, 3개 전문 에이전트의 병렬 초안을 팀장이 통합·검증합니다. |
+| `development-planning-document` | 개발 요청·기능명세서를 상세 기획서로 정리하고, 전문 초안을 통합해 문서 디자인·화면 배치·DOCX/PDF 렌더링을 검증합니다. |
 | `accessibility-review`          | 웹 접근성, 키보드 사용, 스크린리더 지원을 검토합니다.                                                           |
 | `frontend-fundamental-review`   | 프론트엔드 코드의 가독성, 응집도, 결합도, 예측 가능성을 리뷰합니다.                                             |
 | `frontend-react-performance`    | React·Next.js의 렌더링, 데이터 로딩, 번들 및 성능 문제를 다룹니다.                                              |
@@ -55,6 +55,8 @@
 
 ## 전역 설치
 
+Node.js와 `npx`가 필요합니다. 아래 명령은 [skills CLI 공식 안내](https://github.com/vercel-labs/skills)에 따른 설치·업데이트 방법입니다.
+
 레포마다 `.agents/skills`를 복사하거나 링크로 연결하지 않고, [`skills`
 CLI](https://github.com/vercel-labs/skills)로 각 에이전트의 사용자 전역 스킬
 경로에 한 번만 설치하면 이후 모든 프로젝트에서 자동으로 사용할 수 있습니다.
@@ -62,7 +64,7 @@ CLI](https://github.com/vercel-labs/skills)로 각 에이전트의 사용자 전
 Codex만 쓴다면:
 
 ```bash
-npx skills add <이 레포 경로 또는 git URL> -g -a codex -s '*' -y
+npx skills add ramong26/agents-skill -g -a codex -s '*' -y
 ```
 
 Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으로 나열합니다
@@ -71,21 +73,56 @@ Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으�
 경로에 설치됩니다.
 
 ```bash
-npx skills add <이 레포 경로 또는 git URL> -g -a codex claude-code -s '*' -y
+npx skills add ramong26/agents-skill -g -a codex claude-code -s '*' -y
 ```
 
 설치 가능한 전체 에이전트 목록은 `-a` 없이 `npx skills add <경로>`를
 실행하면 인터랙티브 선택 화면에서 확인할 수 있습니다.
 
-스킬을 추가하거나 수정한 뒤에는 전역 설치본을 갱신합니다.
+GitHub에 반영된 변경으로 전역 설치본을 갱신하려면:
 
 ```bash
 npx skills update -g
 ```
 
-Windows처럼 심볼릭 링크 권한이 없는 환경에서는 `copy` 방식으로 설치되므로,
-레포를 수정하면 반드시 위 `update` 명령을 실행해야 반영됩니다. 설치 상태는
-`npx skills ls -g -a codex`로 확인합니다.
+복사 설치가 필요하면 `add` 명령에 `--copy`를 붙입니다. 복사본은 원본 파일 수정만으로 갱신되지 않습니다. 설치 상태는 `npx skills ls -g -a codex`로 확인합니다.
+
+## 개발 기획서 스킬 설치·사용
+
+이 스킬만 설치하려면:
+
+```bash
+npx skills add ramong26/agents-skill -g -a codex -s development-planning-document -y
+```
+
+총괄 폴더 안의 전용 스킬과 `references/`도 함께 유지해야 합니다. 전용 스킬의 `SKILL.md`만 따로 복사하지 않습니다. DOCX/PDF 출력에는 `documents:documents`, `pdf:pdf`, 아키텍처 도식에는 `archify`가 필요하며, 이 레포 설치와 별도로 해당 스킬을 사용할 수 있어야 합니다.
+
+요청 예시:
+
+```text
+$development-planning-document
+첨부 사업계획서로 편집 가능한 DOCX와 PDF 개발 기획서를 만들어줘.
+검정·네이비를 유지하고, 긴 표는 요약과 상세 명세로 나눠줘.
+화면안은 실제 배치가 보이는 와이어프레임으로 그려줘.
+```
+
+팀장 검토는 [문서 디자인 기준](development-planning-document/references/document-design.md)을 적용합니다. 전체 조판 전에 표지·본문·상세 명세 샘플을 내부 검토하고, 최종 렌더링에서 가독성·표 줄바꿈·빈 공간·정보 위계를 확인합니다. 화면안은 필드와 버튼의 위치 관계를 보여주는 정적 그림으로 작성합니다.
+
+### 설치본 업데이트
+
+GitHub에서 설치한 기획서 스킬만 갱신하려면:
+
+```bash
+npx skills update development-planning-document -g
+```
+
+이 레포에서 수정한 내용을 GitHub 반영 전에 적용하려면, 레포 루트에서 로컬 소스로 다시 설치합니다. 로컬 재설치와 GitHub 업데이트는 서로 다른 소스를 사용하므로 현재 적용하려는 소스를 선택합니다.
+
+```bash
+python tools/validate-skills.py
+npx skills add . -g -a codex -s development-planning-document -y
+npx skills ls -g -a codex
+```
 
 ## 검증
 
