@@ -64,7 +64,7 @@ CLI](https://github.com/vercel-labs/skills)로 각 에이전트의 사용자 전
 Codex만 쓴다면:
 
 ```bash
-npx skills add ramong26/agents-skill -g -a codex -s '*' -y
+npx skills add https://github.com/ramong26/agents-skill -g -a codex -s '*' -y
 ```
 
 Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으로 나열합니다
@@ -73,13 +73,19 @@ Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으�
 경로에 설치됩니다.
 
 ```bash
-npx skills add ramong26/agents-skill -g -a codex claude-code -s '*' -y
+npx skills add https://github.com/ramong26/agents-skill -g -a codex claude-code -s '*' -y
 ```
 
-설치 가능한 전체 에이전트 목록은 `-a` 없이 `npx skills add <경로>`를
+설치 가능한 전체 에이전트 목록은 `-a` 없이 `npx skills add https://github.com/ramong26/agents-skill`을
 실행하면 인터랙티브 선택 화면에서 확인할 수 있습니다.
 
-GitHub에 반영된 변경으로 전역 설치본을 갱신하려면:
+이 레포의 전체 스킬을 GitHub 최신 내용으로 설치·갱신하려면 같은 명령을 다시 실행합니다:
+
+```bash
+npx skills add https://github.com/ramong26/agents-skill -g -a codex -s '*' -y
+```
+
+다른 레포에서 설치한 스킬까지 포함해 모든 전역 설치본을 갱신하려면:
 
 ```bash
 npx skills update -g
@@ -92,7 +98,7 @@ npx skills update -g
 이 스킬만 설치하려면:
 
 ```bash
-npx skills add ramong26/agents-skill -g -a codex -s development-planning-document -y
+npx skills add https://github.com/ramong26/agents-skill -g -a codex -s development-planning-document -y
 ```
 
 총괄 폴더 안의 전용 스킬과 `references/`도 함께 유지해야 합니다. 전용 스킬의 `SKILL.md`만 따로 복사하지 않습니다. DOCX/PDF 출력에는 `documents:documents`, `pdf:pdf`, 아키텍처 도식에는 `archify`가 필요하며, 이 레포 설치와 별도로 해당 스킬을 사용할 수 있어야 합니다.
