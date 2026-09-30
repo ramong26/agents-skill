@@ -93,42 +93,6 @@ npx skills update -g
 
 복사 설치가 필요하면 `add` 명령에 `--copy`를 붙입니다. 복사본은 원본 파일 수정만으로 갱신되지 않습니다. 설치 상태는 `npx skills ls -g -a codex`로 확인합니다.
 
-## 개발 기획서 스킬 설치·사용
-
-이 스킬만 설치하려면:
-
-```bash
-npx skills add https://github.com/ramong26/agents-skill -g -a codex -s development-planning-document -y
-```
-
-총괄 폴더 안의 전용 스킬과 `references/`도 함께 유지해야 합니다. 전용 스킬의 `SKILL.md`만 따로 복사하지 않습니다. DOCX/PDF 출력에는 `documents:documents`, `pdf:pdf`, 아키텍처 도식에는 `archify`가 필요하며, 이 레포 설치와 별도로 해당 스킬을 사용할 수 있어야 합니다.
-
-요청 예시:
-
-```text
-$development-planning-document
-첨부 사업계획서로 편집 가능한 DOCX와 PDF 개발 기획서를 만들어줘.
-검정·네이비를 유지하고, 긴 표는 요약과 상세 명세로 나눠줘.
-화면안은 실제 배치가 보이는 와이어프레임으로 그려줘.
-```
-
-팀장 검토는 [문서 디자인 기준](development-planning-document/references/document-design.md)을 적용합니다. 전체 조판 전에 표지·본문·상세 명세 샘플을 내부 검토하고, 최종 렌더링에서 가독성·표 줄바꿈·빈 공간·정보 위계를 확인합니다. 화면안은 필드와 버튼의 위치 관계를 보여주는 정적 그림으로 작성합니다.
-
-### 설치본 업데이트
-
-GitHub에서 설치한 기획서 스킬만 갱신하려면:
-
-```bash
-npx skills update development-planning-document -g
-```
-
-이 레포에서 수정한 내용을 GitHub 반영 전에 적용하려면, 레포 루트에서 로컬 소스로 다시 설치합니다. 로컬 재설치와 GitHub 업데이트는 서로 다른 소스를 사용하므로 현재 적용하려는 소스를 선택합니다.
-
-```bash
-python tools/validate-skills.py
-npx skills add . -g -a codex -s development-planning-document -y
-npx skills ls -g -a codex
-```
 
 ## 검증
 
