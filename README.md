@@ -33,11 +33,12 @@
 | `frontend-ui-testing`           | 화면 렌더링, 상호작용, 반응형 레이아웃, 콘솔 오류를 검증합니다.                                                 |
 | `ai-agents-sdk`                 | OpenAI Agents SDK 앱, 도구·핸드오프·에이전트 평가 작업을 지원합니다.                                            |
 | `refactor`                      | 기존 동작과 API를 유지하면서 필요한 범위만 리팩토링합니다.                                                      |
+| `project-structure`             | 프론트엔드 기능 격리·단일 UI 공개 API·shared 의존 방향과 FastAPI 업무 모듈·usecase 구조를 안내합니다.              |
 | `nestjs-implementation`         | NestJS 백엔드에 기존 구조·네이밍과 동일한 형태로 새 기능을 구현합니다. (실제 프로젝트 기반)                     |
-| `nextjs-implementation`         | Next.js(App Router) 프론트에 FSD 레이어와 TanStack Query로 새 화면을 구현합니다. (실제 프로젝트 기반)           |
-| `react-implementation`          | Next.js가 아닌 React SPA에 표준 관례로 새 기능을 구현합니다. (표준 관례, 미검증)                                |
+| `nextjs-implementation`         | Next.js App Router의 기존 관례와 서버·클라이언트 경계를 유지하며 화면과 기능을 구현합니다.                      |
+| `react-implementation`          | React SPA의 기존 설정·컴포넌트·라우팅을 재사용하며 화면과 기능을 구현합니다.                                    |
 | `spring-boot-implementation`    | Spring Boot 백엔드에 표준 계층 구조로 새 기능을 구현합니다. (표준 관례, 미검증)                                 |
-| `fastapi-implementation`        | FastAPI 백엔드에 표준 구조로 새 엔드포인트를 구현합니다. (표준 관례, 미검증)                                    |
+| `fastapi-implementation`        | FastAPI 백엔드의 기존 설정을 존중하며 업무별 폴더에 새 엔드포인트를 구현합니다.                                  |
 
 ## 작동 방식
 

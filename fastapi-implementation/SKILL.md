@@ -1,33 +1,26 @@
 ---
 name: fastapi-implementation
-description: This skill should be used when the user asks to implement, add, or scaffold a new feature, router, or endpoint in a FastAPI backend — e.g. "FastAPI에 게시글 API 추가해줘", "이 엔드포인트 구현해줘", "add a new FastAPI router/endpoint", "implement this backend feature in FastAPI". It generates router/schema/model/service files following standard FastAPI project layout. Do not use for non-FastAPI backends, frontend work, or simple bug fixes.
+description: Implement features, routers, or endpoints in FastAPI. Exclude other backends, frontend work, and simple bug fixes.
 ---
 
 # FastAPI Feature Implementation
 
-> 이 스킬은 실제 프로젝트 코드에서 추출한 게 아니라 FastAPI 공식 문서와 커뮤니티에서
-> 널리 쓰이는 표준 관례로 작성됐다. 실제로 이 스택을 쓰는 레포가 생기면 그 코드를
-> 기준으로 다시 다듬는다. 그 전까지는 아래 구조를 기본값으로만 쓰고, 대상 레포에
-> 이미 다른 컨벤션이 있으면 그것을 우선한다.
+FastAPI 기능의 HTTP 계약·업무 로직·저장소 접근을 구현한다.
+대상 레포의 실제 구조·관례·기존 경로와 실행 방식을 따른다.
 
 ## 적용 전 확인
 
-- 대상 레포에 이미 다른 폴더 구조가 있으면 이 스킬의 템플릿보다 그것을 우선한다.
-- ORM(SQLAlchemy 등), 비동기 여부, 의존성 주입 방식을 기존 코드에서 먼저 확인한다.
+- 기존 엔드포인트와 관련 업무 함수·DTO·라우터 등록 방식을 확인하고 재사용한다. 요청 없는 전체 폴더 이동이나 새 의존성 도입은 하지 않는다.
+- 저장소 접근을 다룰 때 기존 ORM, 동기/비동기, 세션·트랜잭션 경계와 의존성 주입 방식을 확인한다.
 
-## 폴더 구조 (도메인 기준)
+## 기능 구현
 
-```text
-app/<feature>/
-├── router.py        # APIRouter, 엔드포인트 정의
-├── schemas.py         # Pydantic 요청/응답 모델
-├── models.py           # ORM 모델 (SQLAlchemy 등)
-└── service.py          # 비즈니스 로직
-```
+- 기존 기능의 구현 위치와 호출 방식을 따라 필요한 파일만 변경한다. DB 접근이 없으면 저장소·ORM 모델을 추가하지 않는다.
+- 여러 업무를 조합할 때 기존 업무 함수와 DTO를 재사용하고 호출 순서와 값 전달을 구현한다. wrapper·interface·추상 클래스나 빈 템플릿은 필요 없이 만들지 않는다.
 
 ## 라우터
 
-- 각 도메인은 자체 `APIRouter()`를 갖고, `app/main.py`에서 `app.include_router(<feature>_router, prefix="/<feature>", tags=["<feature>"])`로 등록한다.
+- 기존 `APIRouter`와 앱 진입점의 등록 방식을 재사용한다. 새 라우터가 필요하면 기존 관례에 맞춰 `include_router`로 연결하고 경로·prefix·tags를 확인한다.
 - 엔드포인트 함수는 `response_model`을 명시해 응답 스키마를 고정한다.
 
 ## 스키마 (Pydantic)
@@ -37,7 +30,8 @@ app/<feature>/
 
 ## 서비스와 의존성 주입
 
-- 비즈니스 로직은 `service.py`에 함수 또는 클래스로 두고, 라우터에서 `Depends()`로 주입한다.
+- 비즈니스 로직은 기존 서비스의 함수 또는 클래스를 재사용하고 필요한 동작만 구현한다. 라우터에서 호출하거나, 기존 패턴에서 서비스 주입이 필요하면 `Depends()`를 사용한다.
+- DB 접근은 기존 저장소 구현·모델·세션을 재사용한다. 세션 수명·트랜잭션 경계와 동기/비동기 방식은 기존 관례를 유지한다.
 - DB 세션은 `Depends(get_db)` 같은 공용 의존성을 재사용한다. 이미 있는 세션 관리 방식을 새로 만들지 않는다.
 
 ### `Annotated` 매개변수 선언
@@ -60,15 +54,13 @@ credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]
 db: Annotated[Session, Depends(get_db)]
 ```
 
-상세 조회는 `None` 검사 후 기존 변환 함수를 호출한다.
+상세 조회는 `None`이면 기존 404 예외를 반환하고, 값이 있을 때 기존 변환 함수를 호출한다.
 
 ```python
 if meeting is None:
     raise NOT_FOUND_MEETING
 return to_meeting_response(meeting)
 ```
-
-Pylance가 표시하는 `(class) MeetingsResponse`나 `__pydantic_*` 목록은 Pydantic 클래스 정보이며 오류가 아니다.
 
 ## 에러 처리
 
@@ -81,4 +73,5 @@ Pylance가 표시하는 `(class) MeetingsResponse`나 `__pydantic_*` 목록은 P
 
 ## 결과
 
-새로 만든 파일 목록, `main.py`의 라우터 등록 여부, 실행한 검증(타입 체크·테스트)을 정리해 보여준다.
+변경 파일, 기존 라우터 등록·업무 함수·DTO·세션의 재사용 여부와
+실행한 검증(타입 체크·테스트)을 정리해 보여준다.

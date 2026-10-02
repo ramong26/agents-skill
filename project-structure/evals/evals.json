@@ -1,33 +1,238 @@
 {
   "skill_name": "project-structure",
-  "evals": [
+  "cases": [
     {
-      "prompt": "새 프로젝트 폴더 구조 잡아줘",
-      "expected_output": "도메인 폴더를 만들고 그 안에 handler/service/repository/model/public(프론트는 components/hooks/api/model/utils)을 둔다. controllers/, hooks/, types/ 같은 타입별 최상위 폴더는 만들지 않고, 폴더 이름은 요청에 쓰이는 도메인 용어와 같게 짓는다."
+      "id": "choose-stack-before-layout",
+      "prompt": "React 프론트와 FastAPI 백엔드를 새로 만들 거야. 폴더 구조와 import 방향 잡아줘.",
+      "expected_behaviors": [
+        "프론트와 FastAPI 각각의 구조 규약에 맞게 설계하며 하나의 혼합 계층으로 설명하지 않는다",
+        "프론트 features/ui/model/shared와 백엔드 modules/usecases/shared를 구분한다",
+        "폴더 트리와 공개 진입점, 허용 의존 방향을 함께 제시한다"
+      ],
+      "must_not": [
+        "실제 코드가 없는 모든 예시 폴더를 일괄 생성하지 않는다",
+        "기본 폴더 구조와 import 방향 설계에 경계 도구 설정 예시를 필수로 요구하지 않는다"
+      ]
     },
     {
-      "prompt": "쿠폰 할인 계산 로직 어디에 둬야 해?",
-      "expected_output": "coupon 도메인의 service 계층에 두고, 다른 도메인이 필요하면 그 도메인의 public만 쓰도록 배치한다."
+      "id": "frontend-single-ui-entrypoint",
+      "prompt": "payment feature index.ts에 Payment, PaymentForm, usePayment, PaymentProps를 다 export하면 편하겠지?",
+      "expected_behaviors": [
+        "index.ts는 자기 ui의 대표 UI 하나만 named re-export하도록 한다",
+        "내부 UI는 비공개로 유지하고 hook과 타입은 공개하지 않는다",
+        "독립 UI 두 개를 외부에서 조합해야 하면 별도 feature와 상위 페이지 조합으로 나눈다"
+      ],
+      "must_not": [
+        "default export나 export *를 우회 수단으로 제시하지 않는다"
+      ]
     },
     {
-      "prompt": "주문 서비스에서 결제 repository 바로 import하면 안 돼?",
-      "expected_output": "다른 도메인 내부 직접 import를 거부하고, payment의 public에 필요한 것을 공개하거나 두 도메인을 엮는 조율 계층을 두는 방식을 제시한다."
+      "id": "frontend-page-composition",
+      "prompt": "예약 목록 feature에서 예약 편집 feature의 index.ts만 import해도 돼? 선택 상태와 저장 후 갱신을 연결할 배치가 구조 기준에 맞는지 검토해줘.",
+      "expected_behaviors": [
+        "공개 index라도 feature 간 직접 import를 거부한다",
+        "페이지나 라우트가 두 공개 UI를 props와 callback으로 연결하도록 한다",
+        "페이지의 자체 model과 shared 사용은 허용하되 feature model 직접 접근은 막는다"
+      ],
+      "must_not": [
+        "부모 feature 안에 자식 feature를 넣어 직접 조합하는 예외를 만들지 않는다"
+      ]
     },
     {
-      "prompt": "주문 완료할 때 결제랑 재고 차감까지 OrderService에서 같이 처리하면 되지?",
-      "expected_output": "한 도메인이 다른 도메인들을 조율하는 것을 거부하고, checkout 같은 조율 계층을 두어 Order/Payment/Inventory의 public만 호출하도록 제시한다."
+      "id": "frontend-internal-direction",
+      "prompt": "feature 안에서 ui가 자기 model과 다른 내부 UI를 쓰고 model helper끼리 호출해도 돼? model에서 ui를 가져오는 것도 구조 기준에 맞는지 검토해줘.",
+      "expected_behaviors": [
+        "ui에서 자기 ui 내부 구성요소와 자기 model 사용을 허용한다",
+        "동일 segment의 내부 helper는 비순환 참조를 허용한다",
+        "model에서 ui를 가져오는 역방향 참조와 내부에서 자기 index.ts를 거치는 참조는 막는다"
+      ],
+      "must_not": [
+        "물리적으로 형제 파일이라는 이유로 정상적인 ui에서 model 참조까지 막지 않는다"
+      ]
     },
     {
-      "prompt": "이 날짜 포맷 함수 shared에 넣을게",
-      "expected_output": "지금 한 도메인만 쓰면 그 도메인 안에 두고, 두 번째 도메인이 쓰게 될 때 shared로 옮기라고 한다. shared가 도메인 코드를 import하지 않도록 한다."
+      "id": "frontend-shared-ownership",
+      "prompt": "한 예약 폼 전용 hook을 shared/hooks에 두고 shared/utils의 날짜 함수에서 shared/hooks를 호출해도 돼? 공용 카드의 shared/ui 사용과 함께 구조 기준에 맞는지 검토해줘.",
+      "expected_behaviors": [
+        "한 기능 전용 hook은 해당 feature의 model에 둔다",
+        "shared/utils에서 hooks를 참조하는 역방향 의존을 거부한다",
+        "shared/components의 공용 카드가 shared/ui를 조합하는 것은 허용한다",
+        "shared의 동일 category helper 참조는 순환 없이 허용한다"
+      ],
+      "must_not": [
+        "shared가 feature나 페이지 업무 상태를 가져오도록 하지 않는다"
+      ]
     },
     {
-      "prompt": "repository에서 응답 포맷 맞추려고 service 함수 하나만 부르면 안 될까?",
-      "expected_output": "하위가 상위를 import하는 역방향 참조라 거부하고, 포맷 변환을 service나 handler 쪽으로 올리는 배치를 제시한다."
+      "id": "frontend-private-data-model",
+      "prompt": "새 댓글 feature의 API, 타입, query key는 어디에 두는 게 맞아? entities와 shared/constants/queryKey.ts로 나누는 게 편할까?",
+      "expected_behaviors": [
+        "새 기본 구조에서는 댓글 업무별 API, 타입, query key를 해당 feature model에 모은다",
+        "업무와 무관한 공용 HTTP 기반만 shared/libs에 둔다",
+        "기존 구조를 바꾸라는 요청인지 구분하고 기존 레포 전체 이동은 하지 않는다"
+      ],
+      "must_not": [
+        "업무별 query key와 endpoint를 shared의 전역 factory에 새로 모으지 않는다"
+      ]
     },
     {
-      "prompt": "이 레포는 이미 FSD 구조인데 여기 기능 추가해줘",
-      "expected_output": "기존 구조와 naming convention을 우선하고, 그 안에서 단방향 import와 도메인 경계 규칙을 지켜 배치한다. 구조를 새로 갈아엎지 않는다."
+      "id": "nextjs-route-composition",
+      "prompt": "src/app을 쓰는 Next.js App Router 새 프로젝트에 결제 화면과 편집 화면 구조 잡아줘.",
+      "expected_behaviors": [
+        "src/app 위치를 유지하고 route page에서 feature 공개 UI를 조합한다",
+        "features에는 index.ts/ui/model을 필요한 만큼 둔다",
+        "Provider와 서버/클라이언트 경계를 프레임워크 진입점에서 유지한다"
+      ],
+      "must_not": [
+        "App Router 외에 pages나 page 라우팅 레이어를 새로 추가하지 않는다"
+      ]
+    },
+    {
+      "id": "fastapi-module-layout",
+      "prompt": "FastAPI에 DB를 쓰는 쿠폰 생성과 할인 계산 API 구조 잡아줘.",
+      "expected_behaviors": [
+        "coupon 업무 모듈에 필요한 public/router/service/repository/schemas/models를 배치한다",
+        "할인 업무 규칙은 service에, DB 접근은 repository에 둔다",
+        "schemas는 ORM 및 상위 업무 계층과 독립된 계약으로 둔다",
+        "main의 라우터 등록은 모듈 public의 router 재수출을 사용한다"
+      ],
+      "must_not": [
+        "프론트의 UI 한 개 export 규칙을 Python public.py에 적용하지 않는다"
+      ]
+    },
+    {
+      "id": "backend-upper-usecase-only",
+      "prompt": "주문 서비스에서 payment.public을 쓰고 결제와 재고 차감도 OrderService에서 같이 처리해도 돼? 구조 기준에 맞는 조합 위치를 검토해줘.",
+      "expected_behaviors": [
+        "다른 업무 모듈의 public도 직접 import하지 못하게 한다",
+        "상위 checkout usecase가 order/payment/inventory의 public만 조합하도록 한다",
+        "복합 업무의 HTTP router도 usecase에 두고 하위 모듈이 usecase를 import하지 않게 한다"
+      ],
+      "must_not": [
+        "shared에 복합 업무를 옮겨 모듈 독립성 규칙을 우회하지 않는다"
+      ]
+    },
+    {
+      "id": "backend-public-and-contracts",
+      "prompt": "checkout usecase에서 payment.repository와 payment.schemas를 가져오고 main에서는 payment.router를 직접 등록해도 돼? 공개 진입점 기준에 맞는지 검토해줘.",
+      "expected_behaviors": [
+        "usecase의 모듈 내부 접근을 거부하고 필요한 업무 함수와 DTO를 payment.public에 명시적으로 공개한다",
+        "main은 payment.public에서 router를 가져와 등록한다",
+        "모듈 내부는 자기 public을 역참조하지 않고 내부 파일을 직접 사용한다"
+      ],
+      "must_not": [
+        "repository나 ORM model을 public으로 노출해 내부 접근을 합법화하지 않는다"
+      ]
+    },
+    {
+      "id": "backend-reverse-import",
+      "prompt": "repository에서 service 포맷 함수 부르고 schemas에서 ORM 모델을 import하면 안 될까?",
+      "expected_behaviors": [
+        "repository에서 service를 부르는 역방향 의존을 거부한다",
+        "schemas에서 ORM model 참조를 거부하고 변환 책임을 상위로 둔다",
+        "router에서 자기 service, repository에서 자기 models 참조는 허용한다"
+      ],
+      "must_not": [
+        "같은 계층 또는 형제라는 말로 정상적인 모듈 내부 방향까지 막지 않는다"
+      ]
+    },
+    {
+      "id": "on-demand-files",
+      "prompt": "FastAPI에서 DB 없이 문자열 검증만 하는 작은 API야. 필요한 폴더 구조 잡아줘.",
+      "expected_behaviors": [
+        "실제 필요한 router/service/schemas와 공개 진입점만 둔다",
+        "DB가 없으면 repository와 ORM models를 생성하지 않는다",
+        "여러 모듈 조합이 없으면 usecase와 미사용 shared 파일을 만들지 않는다"
+      ],
+      "must_not": [
+        "빈 계층 파일과 wrapper 클래스를 미래를 위해 생성하지 않는다"
+      ]
+    },
+    {
+      "id": "existing-conventions-with-boundaries",
+      "prompt": "이미 FSD 폴더와 별칭을 쓰는 React 레포에 기능 하나만 추가해줘. 구조 전체는 옮기지 마.",
+      "expected_behaviors": [
+        "기존 경로와 네이밍을 소유권 및 책임 계층에 대응시킨다",
+        "요청한 기능 범위에서 공개 진입점과 단방향 경계를 지킨다",
+        "기존 공개 API를 임의로 폐기하거나 레포 전체를 이동하지 않는다"
+      ],
+      "must_not": [
+        "기존 관례라는 이유로 새 feature 간 직접 참조를 추가하지 않는다"
+      ]
+    },
+    {
+      "id": "path-and-type-escape",
+      "prompt": "다른 feature의 model 타입만 상대 경로로 import하고 필요할 때 dynamic import하면 린트는 통과하지?",
+      "expected_behaviors": [
+        "타입, 상대 경로, 동적 import에도 같은 소유권 경계를 적용한다",
+        "실제 목적지를 해석해 위반을 확인한다",
+        "문자열 패턴 린트만으로 우회와 순환까지 검증했다고 하지 않는다"
+      ],
+      "must_not": [
+        "린트 미검출을 구조 규칙의 허용으로 해석하지 않는다"
+      ]
+    },
+    {
+      "id": "validation-scope",
+      "prompt": "ESLint나 import-linter는 없지만 스킬 레포 validate-skills.py가 통과했으니 경계 자동 검증 완료라고 해줘.",
+      "expected_behaviors": [
+        "스킬 형식 검사와 실제 프로젝트 경계 검증을 구분한다",
+        "설치된 도구가 없으면 실제 import와 공개 API를 수동으로 확인한 범위를 보고한다",
+        "실행하지 않은 lint 및 public/export 검사 통과를 주장하지 않는다"
+      ],
+      "must_not": [
+        "새 checker나 의존성을 요청 없이 설치하지 않는다"
+      ]
+    },
+    {
+      "id": "single-stack-change-in-fullstack-repo",
+      "prompt": "React와 FastAPI가 함께 있는 레포지만 이번에는 React 예약 화면의 기능 조합 구조만 검토해줘. 백엔드 API는 그대로 사용해.",
+      "expected_behaviors": [
+        "프론트 공개 UI와 페이지 조합 책임을 기준으로 요청한 구조를 판단한다",
+        "현재 변경에 필요한 프론트 규약으로 검토를 완결하고 백엔드 규약 확인·설계·검사를 선행 조건으로 요구하지 않는다"
+      ],
+      "must_not": [
+        "풀스택이라는 이유만으로 현재 작업과 무관한 백엔드 규약이나 설계·검사를 필수로 요구하지 않는다"
+      ]
+    },
+    {
+      "id": "reexport-contract-and-internal-change",
+      "prompt": "feature index.ts와 payment public.py는 이름만 재수출한다. 페이지 callback과 checkout 함수 조합을 설계하려는데 타입·실패 의미가 불명확해. 필요한 계약을 확인하고 결제 함수 내부의 금액 검증 변경도 검토해줘.",
+      "expected_behaviors": [
+        "실제 UI props·callback과 공개 함수·DTO 계약에 맞는 조합을 제안한다",
+        "의미가 부족하면 관련 선언·구현을 확인하고 내부 수정의 영향도 판단한다",
+        "명확한 타입에 별도 계약 문서를 강제하지 않는다"
+      ],
+      "must_not": [
+        "선언 읽기를 허용했다는 이유로 소비 코드에 비공개 경로 import를 추가하지 않는다",
+        "공개 재수출만 확인하고 입력·실패·부작용을 추측하지 않는다"
+      ]
+    },
+    {
+      "id": "standalone-structure-skill",
+      "prompt": "project-structure만 설치했고 같은 패키지에 SKILL.md와 내부 references/frontend.md·fastapi.md가 포함되어 있어. React·Next.js·FastAPI 구현 스킬은 없어. React와 FastAPI의 기능별 폴더와 공개 진입점, import 방향을 설계해줘.",
+      "expected_behaviors": [
+        "다른 루트 스킬 설치 없이 구조 패키지의 본문과 내부 참조만으로 프론트와 FastAPI 각각의 소유 단위와 공개 계약을 설계한다",
+        "단일 UI·feature 격리·shared 방향과 모듈 public·상위 usecase 규약을 유지한다",
+        "도구 설정을 다루지 않는 기본 구조 설계는 선택적인 경계 도구 예시를 요구하지 않고 진행한다"
+      ],
+      "must_not": [
+        "React·Next.js·FastAPI 구현 스킬 등 다른 루트 스킬의 설치나 문서 참조를 필수로 요구하지 않는다",
+        "설계 결과를 별도 계약 문서나 docs 계획서로 저장하도록 요구하지 않는다"
+      ]
+    },
+    {
+      "id": "nextjs-server-client-composition",
+      "prompt": "Next.js 결제 라우트에서 두 feature의 초기 데이터를 서버에서 준비하고 쿠폰 선택 callback을 연결해야 해. 단일 공개 UI 규칙과 서버·클라이언트 경계를 함께 지키는 배치를 설계해줘.",
+      "expected_behaviors": [
+        "여러 feature의 초기 입력을 묶는 서버 loader를 라우트에 두고 feature model을 직접 가져오지 않는다",
+        "서버는 직렬화 가능한 props를 전달하고 callback·상태 연결은 라우트 소유 클라이언트 조합에서 수행한다",
+        "클라이언트 조합은 클라이언트에서 사용할 수 있는 각 feature의 단일 공개 UI를 사용한다"
+      ],
+      "must_not": [
+        "feature index에 서버 loader를 추가 공개하거나 다른 feature를 직접 import하지 않는다",
+        "서버 UI wrapper를 클라이언트에서 가져오거나 일반 callback을 서버에서 클라이언트로 넘기지 않는다"
+      ]
     }
   ]
 }
