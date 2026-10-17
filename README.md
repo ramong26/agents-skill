@@ -34,11 +34,12 @@
 | `frontend-ui-testing`           | 화면 렌더링, 상호작용, 반응형 레이아웃, 콘솔 오류를 검증합니다.                                                 |
 | `ai-agents-sdk`                 | OpenAI Agents SDK 앱, 도구·핸드오프·에이전트 평가 작업을 지원합니다.                                            |
 | `refactor`                      | 기존 동작과 API를 유지하면서 필요한 범위만 리팩토링합니다.                                                      |
+| `project-structure`             | 프론트엔드 기능 격리·단일 UI 공개 API·shared 의존 방향과 FastAPI 업무 모듈·usecase 구조를 안내합니다.              |
 | `nestjs-implementation`         | NestJS 백엔드에 기존 구조·네이밍과 동일한 형태로 새 기능을 구현합니다. (실제 프로젝트 기반)                     |
-| `nextjs-implementation`         | Next.js(App Router) 프론트에 FSD 레이어와 TanStack Query로 새 화면을 구현합니다. (실제 프로젝트 기반)           |
-| `react-implementation`          | Next.js가 아닌 React SPA에 표준 관례로 새 기능을 구현합니다. (표준 관례, 미검증)                                |
+| `nextjs-implementation`         | Next.js App Router의 기존 관례와 서버·클라이언트 경계를 유지하며 화면과 기능을 구현합니다.                      |
+| `react-implementation`          | React SPA의 기존 설정·컴포넌트·라우팅을 재사용하며 화면과 기능을 구현합니다.                                    |
 | `spring-boot-implementation`    | Spring Boot 백엔드에 표준 계층 구조로 새 기능을 구현합니다. (표준 관례, 미검증)                                 |
-| `fastapi-implementation`        | FastAPI 백엔드에 표준 구조로 새 엔드포인트를 구현합니다. (표준 관례, 미검증)                                    |
+| `fastapi-implementation`        | FastAPI 백엔드의 기존 설정을 존중하며 업무별 폴더에 새 엔드포인트를 구현합니다.                                  |
 
 ## 작동 방식
 
@@ -56,6 +57,8 @@
 
 ## 전역 설치
 
+Node.js와 `npx`가 필요합니다. 아래 명령은 [skills CLI 공식 안내](https://github.com/vercel-labs/skills)에 따른 설치·업데이트 방법입니다.
+
 레포마다 `.agents/skills`를 복사하거나 링크로 연결하지 않고, [`skills`
 CLI](https://github.com/vercel-labs/skills)로 각 에이전트의 사용자 전역 스킬
 경로에 한 번만 설치하면 이후 모든 프로젝트에서 자동으로 사용할 수 있습니다.
@@ -63,7 +66,7 @@ CLI](https://github.com/vercel-labs/skills)로 각 에이전트의 사용자 전
 Codex만 쓴다면:
 
 ```bash
-npx skills add <이 레포 경로 또는 git URL> -g -a codex -s '*' -y
+npx skills add https://github.com/ramong26/agents-skill -g -a codex -s '*' -y
 ```
 
 Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으로 나열합니다
@@ -72,21 +75,26 @@ Codex와 Claude Code를 함께 쓴다면 `-a` 뒤에 에이전트를 공백으�
 경로에 설치됩니다.
 
 ```bash
-npx skills add <이 레포 경로 또는 git URL> -g -a codex claude-code -s '*' -y
+npx skills add https://github.com/ramong26/agents-skill -g -a codex claude-code -s '*' -y
 ```
 
-설치 가능한 전체 에이전트 목록은 `-a` 없이 `npx skills add <경로>`를
+설치 가능한 전체 에이전트 목록은 `-a` 없이 `npx skills add https://github.com/ramong26/agents-skill`을
 실행하면 인터랙티브 선택 화면에서 확인할 수 있습니다.
 
-스킬을 추가하거나 수정한 뒤에는 전역 설치본을 갱신합니다.
+이 레포의 전체 스킬을 GitHub 최신 내용으로 설치·갱신하려면 같은 명령을 다시 실행합니다:
+
+```bash
+npx skills add https://github.com/ramong26/agents-skill -g -a codex -s '*' -y
+```
+
+다른 레포에서 설치한 스킬까지 포함해 모든 전역 설치본을 갱신하려면:
 
 ```bash
 npx skills update -g
 ```
 
-Windows처럼 심볼릭 링크 권한이 없는 환경에서는 `copy` 방식으로 설치되므로,
-레포를 수정하면 반드시 위 `update` 명령을 실행해야 반영됩니다. 설치 상태는
-`npx skills ls -g -a codex`로 확인합니다.
+복사 설치가 필요하면 `add` 명령에 `--copy`를 붙입니다. 복사본은 원본 파일 수정만으로 갱신되지 않습니다. 설치 상태는 `npx skills ls -g -a codex`로 확인합니다.
+
 
 ## 검증
 
