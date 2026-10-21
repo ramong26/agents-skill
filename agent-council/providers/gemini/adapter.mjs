@@ -69,6 +69,7 @@ function isolationAllowed(settings) {
 
 // AGY account auth uses the OS keyring; the token itself is never read here.
 export async function preflight(options) {
+  if (options.includedOnly !== true) return billingDecision(null, null);
   const effort = options.config?.providers?.gemini?.effort;
   if (effort && !["low", "medium", "high"].includes(effort))
     return { ok: false, code: "unsupported_cli" };
@@ -79,19 +80,13 @@ export async function preflight(options) {
     "--sandbox",
   ];
   if (effort) requiredFlags.push("--effort");
-  const inspected = await inspectCli(id, options, requiredFlags);
-  if (!inspected.ok) return inspected;
-
   let settings;
   try {
     settings = readSettings(options.env || {});
   } catch {
-    return {
-      ok: false,
-      code: "isolation_unconfirmed",
-      cliVersion: inspected.cliVersion,
-    };
+    return { ok: false, code: "isolation_unconfirmed" };
   }
+  if (settings.useG1Credits !== false) return billingDecision(null, null);
   if (
     settings.modelProvider !== undefined &&
     settings.modelProvider !== null &&
@@ -100,14 +95,12 @@ export async function preflight(options) {
     return {
       ok: false,
       code: "auth_policy_conflict",
-      cliVersion: inspected.cliVersion,
     };
   if (!isolationAllowed(settings))
-    return {
-      ok: false,
-      code: "isolation_unconfirmed",
-      cliVersion: inspected.cliVersion,
-    };
+    return { ok: false, code: "isolation_unconfirmed" };
+
+  const inspected = await inspectCli(id, options, requiredFlags);
+  if (!inspected.ok) return inspected;
 
   const modelCheck = await inspected.run(["models"], 30000);
   const modelOutput = `${modelCheck.stdout ?? ""}\n${modelCheck.stderr ?? ""}`;
@@ -138,11 +131,7 @@ export async function preflight(options) {
     };
 
   // The models command confirms keyring-backed account access without generating a response.
-  return billingDecision(
-    options.config,
-    inspected.cliVersion,
-    "existing_login",
-  );
+  return billingDecision(inspected.cliVersion, "existing_login", "included_only");
 }
 
 // AGY requires stream-json on both sides; stdin carries one explicit user event.

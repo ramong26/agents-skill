@@ -189,12 +189,16 @@ export const unconfirmedBilling = (cliVersion) => ({
   ok: false,
   code: "billing_unconfirmed",
   cliVersion,
-  auth: "existing_login",
+  auth: null,
   billing: "unconfirmed",
 });
 
-export function billingDecision(config, cliVersion, auth = "existing_login") {
-  return config?.policy?.on_unconfirmed_billing === "allow_existing_login"
-    ? { ok: true, cliVersion, auth, billing: "unconfirmed" }
-    : { ...unconfirmedBilling(cliVersion), auth };
+export function billingDecision(
+  cliVersion,
+  auth = null,
+  billingStatus = "unconfirmed",
+) {
+  if (billingStatus === "included_only")
+    return { ok: true, cliVersion, auth, billing: billingStatus };
+  return { ...unconfirmedBilling(cliVersion), auth };
 }

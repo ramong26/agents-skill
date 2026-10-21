@@ -13,7 +13,7 @@ export function validateConfig(config) {
       throw failure('invalid_config');
   }
   if (Object.entries(fixedPolicy).some(([key, value]) => config.policy?.[key] !== value)) throw failure('invalid_config');
-  if (!['skip', 'allow_existing_login'].includes(config.policy.on_unconfirmed_billing)) throw failure('invalid_config');
+  if (config.policy.on_unconfirmed_billing !== 'skip') throw failure('invalid_config');
   const e = config.execution;
   if (e.runner_retries !== 0 || e.max_review_rounds !== 1 ||
     [e.draft_timeout_seconds, e.review_timeout_seconds].some(n => !Number.isFinite(n) || n <= 0 || n > 3600))

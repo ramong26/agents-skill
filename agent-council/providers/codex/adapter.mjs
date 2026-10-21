@@ -11,6 +11,7 @@ export const id = "codex";
 
 // Codex CLI의 지원 옵션과 기존 ChatGPT 로그인을 확인하고 비용 정책에 따라 참여 여부를 판단한다.
 export async function preflight(options) {
+  if (options.includedOnly !== true) return billingDecision(null, null);
   const inspected = await inspectCli(id, options, [
     "--ignore-user-config",
     "--ignore-rules",
@@ -30,7 +31,7 @@ export async function preflight(options) {
     };
   }
   // Login status does not establish whether account usage credits can be consumed.
-  return billingDecision(options.config, inspected.cliVersion);
+  return billingDecision(inspected.cliVersion, "existing_login", "included_only");
 }
 
 // 지정 모델·추론 강도와 도구 제한을 적용한 Codex 실행 명령 및 표준 입력을 구성한다.

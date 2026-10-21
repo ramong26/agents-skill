@@ -28,6 +28,6 @@
     "model_fallback": false,
     "interactive_auth": false,
     "purchase_or_topup": false,
-    "on_unconfirmed_billing": "allow_existing_login"
+    "on_unconfirmed_billing": "skip"
   }
 }
