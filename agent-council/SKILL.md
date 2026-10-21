@@ -1,6 +1,6 @@
 ---
 name: agent-council
-description: 같은 질문에 대한 Codex·Claude Code·Gemini CLI의 독립 의견을 비교하고, 현재 호출 세션이 근거·반론을 검증해 실행 가능한 추천을 작성할 때 사용한다. 단순 문장 수정이나 일반 작업 위임에는 사용하지 않는다.
+description: 같은 질문에 대한 Codex·Claude Code·Google Gemini(Antigravity CLI)의 독립 의견을 비교하고, 현재 호출 세션이 근거·반론을 검증해 실행 가능한 추천을 작성할 때 사용한다. 단순 문장 수정이나 일반 작업 위임에는 사용하지 않는다.
 ---
 
 # 멀티 모델 의견 취합
@@ -14,7 +14,7 @@ description: 같은 질문에 대한 Codex·Claude Code·Gemini CLI의 독립 �
 - 단순 수정처럼 비교 가치가 없는 질문은 현재 세션에서 처리한다.
 - `AGENT_COUNCIL_ACTIVE=1`인 참여 프로세스에서는 이 스킬을 다시 실행하지 않는다.
 - 실행 시 [실행 규약](references/execution.md)을 읽어 입력·명령·기록 경로를 확인한다.
-- 현재 총괄이 Codex이면 [Codex 안내](providers/codex/instructions.md), Claude Code이면 [Claude 안내](providers/claude/instructions.md), Gemini CLI이면 [Gemini 안내](providers/gemini/instructions.md)만 읽는다.
+- 현재 총괄이 Codex이면 [Codex 안내](providers/codex/instructions.md), Claude Code이면 [Claude 안내](providers/claude/instructions.md), Antigravity CLI(`agy`)이면 [Gemini 안내](providers/gemini/instructions.md)만 읽는다.
 - 설치·갱신이 필요할 때만 [설치 안내](references/installation.md)를 읽는다.
 
 ## 공통 입력
@@ -35,6 +35,12 @@ description: 같은 질문에 대한 Codex·Claude Code·Gemini CLI의 독립 �
 7. 총괄이 작성한 검증 기록과 최종 답변을 `finalize`로 저장하고 사용자에게 결과를 전달한다.
 
 ## 실행 정책
+
+- Google 참여자의 내부 설정 키는 gemini로 유지하고 실제 실행 파일은 Antigravity CLI의 agy를 사용한다.
+- Google 모델은 config.json의 명시적 ID로 요청한다. 모델 선택 오류가 나면 제외하고 다른 모델로 대체하지 않는다.
+- Antigravity CLI는 기존 OS 계정 로그인만 허용한다. API 키 인증과 ADC 인증 경로는 요청 전에 제외한다.
+- AGY는 실행별 전용 작업 폴더에서 실행하고 터미널 샌드박스를 켠다. 글로벌 설정에서 비작업공간 접근이나 자동 도구 허용이 켜져 있으면 실행하지 않는다.
+- 결과 스트림에서 파일·명령·MCP·하위 에이전트 도구 사용이 확인되면 해당 결과를 취합에서 제외한다.
 
 - 기존 공식 CLI 로그인만 사용한다. 웹 로그인만으로 CLI 인증을 추정하지 않는다.
 - 로그인·브라우저 인증·충전·업그레이드·계정 전환·API 키 대체·자동 모델 대체를 수행하지 않는다.
@@ -63,8 +69,8 @@ description: 같은 질문에 대한 Codex·Claude Code·Gemini CLI의 독립 �
 가장 강한 반론: ...
 다른 선택으로 바꿀 조건: ...
 검증 상태: 확인한 사실 / 미확인 사항
-참여: Codex, Claude
-제외: Gemini — 확인된 제외 사유
+참여: Codex, Claude, Gemini (Antigravity CLI)
+제외: Gemini (agy) — 확인된 제외 사유
 추가 검토: 생략 또는 대상·쟁점·성공/실패
 ```
 
