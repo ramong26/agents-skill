@@ -25,3 +25,6 @@ jobs:
           for script in agent-council/scripts/*.mjs agent-council/providers/*/*.mjs agent-council/providers/shared.mjs; do
             node --check "$script"
           done
+      - name: Test council billing and repository isolation
+        shell: bash
+        run: node --test agent-council/tests/*.test.mjs

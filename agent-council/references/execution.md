@@ -19,33 +19,35 @@
 }
 ```
 
-`question`은 필수다. 나머지는 필요한 항목만 넣는다.
-원본 질문과 총괄이 선별한 맥락을 분리하고 모든 참여자에게 같은 입력을 전달한다.
+`question`은 필수이며 스킬 호출 문구를 제외한 사용자 질문 원문을 그대로 담는다. 질문만 받았다면 `{"question":"2 더하기 2는 뭐야?"}`처럼 작성하고 선택 필드는 생략한다.
+선택 필드는 사용자가 명시한 사실·제약·미확인 질문과 제공하거나 지정한 원자료만 그대로 담는다. 총괄의 문제풀이·추천·가설·검색 요약으로 입력을 보충하지 않는다.
+독립 초안 전에 총괄의 선행 답변을 만들거나 전달하지 않는다. 실행기는 입력을 검증하고 비밀값을 가린 뒤 동일한 공통 프롬프트를 세 CLI에 병렬 전달하며, 다른 참여자의 답변을 합치지 않는다. 임의로 작성된 필드의 의미적 편향까지 자동 판별하는 것은 아니다.
 입력은 셸 명령에 이어 붙이지 않고 파일로 전달한다.
 실행기는 각 참여자에게 다음 답변 형식을 공통으로 요청한다.
 
 1. 현재 조건의 권장안 한 가지
 2. 핵심 근거
-3. 가장 강한 반론
-4. 다른 선택지가 유리해지는 조건
-5. 결론을 바꿀 수 있는 미확인 사실
-6. 근거 자료가 있다면 출처
+3. 출처 (없으면 `없음`)
+
+세 항목만 요청한다. 중요한 한계·미확인 사실은 핵심 근거에 포함한다. 독립 초안을 모두 수집한 뒤 총괄이 검증·종합하며, 최종 화면에는 종합을 맨 위에 표시하고 각 참여자의 답변 전문을 이어 붙인다.
 
 ## 명령
 
 ```text
-node "<SKILL>/scripts/council.mjs" doctor
-node "<SKILL>/scripts/council.mjs" draft --request "<request.json>" --runs-dir "<RUNS>"
+node "<SKILL>/scripts/council.mjs" doctor --included-only "<confirmed-provider-list>"
+node "<SKILL>/scripts/council.mjs" draft --request "<request.json>" --runs-dir "<RUNS>" --included-only "<confirmed-provider-list>"
 node "<SKILL>/scripts/council.mjs" collect --run "<run-directory>"
-node "<SKILL>/scripts/council.mjs" review --run "<run-directory>" --request "<review.json>"
+node "<SKILL>/scripts/council.mjs" review --run "<run-directory>" --request "<review.json>" --included-only "<confirmed-provider-list>"
 node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verification "<verification.md>" --final "<final.md>"
 ```
 
-- `doctor`: 모델 답변을 생성하지 않고 CLI·인증·설정 모델 목록·비용 정책의 확인 가능한 상태를 점검한다. Google 참여자는 `agy models`를 실행한다.
-- `draft`: 실행별 고유 디렉터리를 만들고 독립 초안을 병렬로 수집한다. 반환된 `runDir`를 후속 명령에 사용한다.
+- `--included-only`에는 [계정·비용 확인](account-checks.md)에 따라 추가 사용·크레딧·자동 충전이 꺼진 제공자만 적는다. 생략해도 활성 제공자의 로그인은 검사하지만 모두 `billing_unconfirmed`로 모델 호출을 건너뛴다. 확인은 해당 호출에만 적용한다.
+- `doctor`: 허용 목록과 무관하게 활성 제공자의 로그인·CLI·모델 설정을 점검하고 사용량 확인 명령을 안내한다. 모델 답변은 생성하지 않는다.
+- `draft`: 매번 모든 활성 제공자의 기존 로그인을 확인한다. `--included-only`에 명시된 로그인 제공자만 독립 초안을 병렬 수집한다. 설정된 무료·포함 대체 모델은 지정 모델이 접근 불가하거나 사용 한도에 도달했을 때 한 번만 실행한다. 대체 모델도 실패하면 추가 호출 없이 결과를 제외한다. 반환된 `runDir`를 후속 명령에 사용한다.
 - `collect`: 저장된 상태·초안·추가 검토를 읽는다. 새 모델 요청을 보내지 않는다.
-- `review`: 초안에 성공한 대상만 추가 검토한다. 한 실행에서 한 번만 허용한다.
+- `review`: 초안에 성공한 대상만 추가 검토한다. 한 실행에서 한 번만 허용하며 로그인과 추가 과금 설정을 다시 확인하고 목록을 다시 전달한다.
 - `finalize`: 총괄이 이미 작성한 두 파일을 실행 기록에 저장한다. 통합 모델 API를 호출하지 않는다.
+- 최종 문서는 초안 3개·추가 검토 3개의 전문과 종합을 담도록 UTF-8 16 MiB까지 허용한다. 검증 문서와 요청 입력은 각각 1 MiB 제한을 유지한다. 큰 초안을 임의로 잘라 원문이라고 표시하지 않는다.
 - `doctor`와 `draft`에만 `--config "<config.json>"`을 지정할 수 있다. 후속 단계는 해당 실행에 저장된 설정을 사용한다.
 - 참여자 제외는 다른 참여자의 수집을 중단하지 않는다. 잘못된 입력·명령·실행 단계 사용은 명령 오류다.
 - 중첩 실행 표식 `AGENT_COUNCIL_ACTIVE=1`에서는 실행기가 새 취합 실행을 거부한다.
@@ -77,9 +79,9 @@ node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verificati
 
 실행기는 설정과 중립 작업 폴더 등 실행에 필요한 내부 파일을 함께 관리할 수 있다.
 설치 위치에 질문·초안·임시 파일을 쌓지 않는다.
-각 결과는 서비스, 단계, 성공/제외, 실패 코드, 최종 답변, 요청 모델, 확인 모델, CLI 버전, 소요 시간을 구분한다.
-`auth`와 `billing`은 별도 항목이다. `auth: existing_login`은 기존 로그인 경로를 확인했다는 뜻이고 `billing: unconfirmed`는 추가 과금 여부를 확인하지 못했다는 뜻이다.
-Antigravity CLI의 `doctor`는 `agy models`가 성공하고 설정 모델이 목록에 있는지 확인한다. CLI는 OS keyring의 token profile을 사용하며 스킬은 토큰을 직접 읽지 않는다. 실제 headless 요청에서 인증 오류가 나면 해당 참여자를 제외한다.
+각 결과는 서비스, 단계, 성공/제외, 실패 코드, 조치 안내(`actionHint`), 필요한 경우 공식 로그인 명령(`loginHint`), 최종 답변, 요청 모델, 실제 확인 모델, 대체 모델과 전환 사유, CLI 버전, 소요 시간을 구분한다.
+`auth`와 `billing`은 별도 항목이다. `auth: existing_login`은 해당 호출에서 기존 로그인을 확인했다는 뜻이고 `billing: included_only`는 사용자가 추가 과금 경로를 껐다고 확인한 뜻이다. `billing: unconfirmed`이면 모델 요청 전 제외다. 잔여 사용량은 요청 전 보장하지 않으며, 한도 오류는 `quota_exhausted`로 반환한다.
+Google 참여자는 `useG1Credits`가 `true`이거나 값이 잘못됐으면 CLI 검사에서 제외한다. 키가 없으면 Antigravity CLI 문서에 기재된 기본값 `false`를 적용한다. `doctor`는 `agy models`가 성공하고 설정 모델이 목록에 있는지도 확인한다. CLI는 OS keyring의 계정 토큰을 사용하며 스킬은 토큰을 직접 읽지 않는다. 실제 headless 요청에서 인증 오류가 나면 해당 참여자를 제외한다.
 Antigravity CLI는 전역 GEMINI.md, Skills, plugins, MCP 설정의 영향을 받을 수 있다. 실행별 전용 작업 폴더만 workspace로 지정하고 --sandbox를 사용한다. 기본 workspace 파일 접근은 해당 임시 폴더에 제한되며 글로벌 permissions.allow가 비어 있지 않거나 allowNonWorkspaceAccess가 켜져 있으면 사전 제외한다. 결과 stream에서 도구 호출이 관찰되면 답변을 취합하지 않는다.
 확인 모델이 없으면 `null` 또는 확인 불가로 남기며 모델 본문의 자기소개로 채우지 않는다.
 Antigravity CLI의 공개 stream-json 예시는 실제 모델 식별자를 결과에 포함하지 않는다. 별도 메타데이터가 없으면 actualModel을 null로 기록하고 요청 모델의 본문 자기소개로 채우지 않는다.
@@ -97,17 +99,16 @@ Antigravity CLI의 공개 stream-json 예시는 실제 모델 식별자를 결�
 정확한 원인을 모르면 일반 실행 오류로 남기고 크레딧 소진 등으로 단정하지 않는다.
 실행기 자동 재시도는 0회다. CLI 내부 재시도는 지원 범위만 제어하고 최종 대기는 프로세스 시간 제한으로 제한한다.
 
-인증의 유효성과 포함 사용량 외 과금 가능성은 따로 확인한다.
-기본 `policy.on_unconfirmed_billing: allow_existing_login`은 사용자가 허용한 기존 공식 로그인 경로로 요청을 진행한다.
-비용을 확인하지 못한 경우 `billing: unconfirmed`를 유지하며, 이미 활성화된 사용 크레딧이 사용될 수 있음을 설명한다.
-사용량 소진·요청 제한 오류는 재시도 없이 해당 참여자만 제외한다. 포함 사용량 소진 뒤 서비스가 기존 유료 크레딧으로 정상 응답하면 소진을 사전에 감지·차단한다고 보장할 수 없다.
-포함 사용량 이후 중단을 원하면 계정의 추가 사용이 꺼져 있어야 한다. 실행기는 이 계정 설정을 바꾸거나 크레딧 구매·충전을 수행하지 않는다.
-선택 정책 `skip`에서는 공식 상태·설정만으로 포함 사용량 외 과금 가능성을 배제할 수 없으면 `billing_unconfirmed`로 요청 전에 제외한다.
-두 정책 모두 기존 공식 로그인 경로가 없거나 확인되지 않으면 제외한다. API 키·프록시·다른 계정으로 대체하지 않는다.
-정책 확인을 위한 유료 모델 질문, 토큰 값 추출·기록, API 인증 전환은 하지 않는다.
-AGY의 --input-format stream-json은 --output-format stream-json과 함께 사용하며 stdin user 이벤트를 보낸다. 파서는 progress 이벤트가 아닌 terminal result의 status와 response를 확인한다. 알 수 없는 모델은 비정상 종료하며 다른 모델로 조용히 대체하지 않는다.
-`doctor`는 설치·지원 옵션·인증 상태·설정 모델 목록·정책상 실행 가능 여부를 확인하는 사전 점검이다. 모델 생성 요청은 보내지 않는다.
-사전 점검 통과는 실제 모델 응답·잔여 한도·추가 과금 없음의 보증이 아니다.
+매 호출에서 모든 활성 CLI의 로그인 상태를 읽기 전용으로 확인한다. `--included-only`는 사용량 잔여가 아니라 추가 과금·크레딧·자동 충전을 껐다는 실행별 확인이다. 사용량 확인은 각 서비스의 CLI 명령(`/status`, `/usage`)을 우선 사용하되, 확인할 수 없더라도 초과 과금 경로가 꺼져 있으면 요청을 시도할 수 있다.
+`policy.on_unconfirmed_billing`은 `skip`만 허용한다. 이전 `allow_existing_login` 설정은 거부한다. `--included-only`는 실행별 확인이며 설정 파일이나 요청 기록에 저장하지 않는다.
+사용량 소진 또는 모델 접근 오류는 `--included-only`가 확인된 경우에만 명시된 `freeFallbackModel`을 한 번 시도한다. 설정된 무료·포함 대체가 없거나 그 요청도 실패하면 해당 참여자만 제외한다. 추가 크레딧, API 키·ADC, 다른 계정·임의 모델로 대체하지 않으며 결제·로그인·전역 설정을 바꾸지 않는다.
+Codex·Claude 인증 사전 점검은 명령을 호출한 저장소의 현재 작업 디렉터리에서 매번 한다. 모델 요청은 실행별 임시 작업 폴더에서 실행해 다른 저장소의 코드와 프로젝트 지침을 읽지 않는다.
+로그인 실패 시 해당 제공자의 공식 로그인 명령을 결과에 표시하고, 자동 로그인은 시작하지 않는다. 무료 대체 모델까지 한도가 소진되면 `quota_exhausted`를 남기고 해당 제공자를 중단한다.
+OS keyring 접근 거부는 `credential_store_unavailable`, 로그인 상태는 `unconfirmed`로 기록하며 로그인 명령 대신 일반 사용자 셸의 읽기 전용 `doctor` 확인을 안내한다. 제한된 호출 셸의 자격 증명 접근과 모델 프로세스의 도구 샌드박스는 별개다.
+정책 확인을 위한 모델 질문, 토큰 값 추출·기록, API 인증 전환은 하지 않는다.
+AGY의 --input-format stream-json은 --output-format stream-json과 함께 사용하며 stdin user 이벤트를 보낸다. 파서는 progress 이벤트가 아닌 terminal result의 status와 response를 확인한다. 알 수 없는 모델은 비정상 종료하며, 설정된 무료·포함 대체 모델이 있을 때만 한 번 전환한다.
+`doctor`는 모든 활성 제공자의 설치·지원 옵션·인증 상태·설정 모델을 사전 점검한다. 포함 사용 확인이 있고 기본 모델을 사용할 수 없으면 설정된 무료·포함 대체 모델도 확인하지만, 모델 답변 요청은 보내지 않는다. 허용 목록에서 빠진 제공자도 로그인 확인은 하지만 모델 생성 요청은 보내지 않는다.
+사전 점검은 모델 응답이나 남은 사용량을 보장하지 않는다. 한도 소진 응답이 오면 해당 참여자를 제외하고 다른 확인된 참여자 결과만 보존한다.
 실제 모델 요청에서 인증 만료·한도·모델 접근 오류가 나면 확인된 사유로 해당 참여자를 제외한다.
 실제 요청하지 않은 서비스의 모델 호출 성공이나 무료 이용 가능성을 검증했다고 보고하지 않는다.
 

@@ -60,21 +60,23 @@
 
 Node.js와 `npx`가 필요합니다. 아래 명령은 [skills CLI 공식 안내](https://github.com/vercel-labs/skills)에 따른 설치·업데이트 방법입니다.
 
-[`skills` CLI](https://github.com/vercel-labs/skills)는 설치된 에이전트를
-자동 감지합니다. 아래 한 명령으로 이 레포의 전체 스킬을 사용자 전역 경로에
-설치할 수 있습니다. Codex만 감지되면 Codex에 설치하고, Codex와 Claude Code가
-모두 감지되면 설치 대상 선택 화면에서 둘 다 선택하면 됩니다.
+[`skills` CLI](https://github.com/vercel-labs/skills)는 사용자 설정 디렉터리에서
+설치된 에이전트를 감지합니다. `-y`를 함께 써서 아래 한 명령으로 이 레포의
+전체 스킬을 사용자 전역 경로에 설치합니다. Codex만 감지되면 Codex에,
+Codex와 Claude Code가 모두 감지되면 두 에이전트 모두에 설치합니다.
 
 ```bash
-npx skills add https://github.com/ramong26/agents-skill -g -s '*'
+npx skills add https://github.com/ramong26/agents-skill -g -s '*' -y
 ```
 
 에이전트를 지정하지 않아야 설치된 에이전트를 감지합니다. Claude Code의 식별자는
 `claude-code`이며 전역 스킬은 `.claude/skills`에 설치됩니다. Codex는 공식 CLI가
-지원하는 사용자 전역 스킬 경로를 사용합니다. 한 대상만 감지된 경우 CLI가 그
-대상을 자동 선택하고, 여러 대상이 감지되면 선택 화면에서 설치할 대상을 고릅니다.
-에이전트 감지는 CLI가 사용하는 사용자 설정 디렉터리를 기준으로 합니다. 아무 대상도
-감지되지 않으면 지원 목록을 표시하므로 직접 선택하거나 취소할 수 있습니다.
+지원하는 사용자 전역 스킬 경로를 사용합니다. `-y`는 감지된 대상 전체를 선택해
+대상 선택을 생략합니다. 에이전트 감지는 실행 파일이 아니라 CLI의 사용자 설정
+디렉터리를 기준으로 하므로, CLI를 설치만 하고 한 번도 실행하지 않아 설정 디렉터리가
+없다면 감지되지 않을 수 있습니다. 아무 대상도 감지되지 않으면 `skills` CLI는 모든
+지원 에이전트를 대상으로 삼으므로, 최소 하나의 Codex 또는 Claude Code 설정 디렉터리가
+있는지 확인한 뒤 실행하세요.
 
 이 레포의 스킬을 설치하거나 갱신하려면 같은 명령을 다시 실행하고, 대상 선택
 화면이 나오면 필요한 에이전트를 고릅니다. 다른 레포에서 설치한 스킬까지 포함해

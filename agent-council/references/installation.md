@@ -8,17 +8,16 @@
 ## Google 참여자 CLI
 
 Google 모델 참여자는 Antigravity CLI의 agy 실행 파일을 사용한다. 저장된 설정·기록과 호환되도록 내부 provider ID는 gemini로 유지한다.
-참여 CLI를 사용하려면 Antigravity CLI를 설치하고 기존 Google 계정으로 미리 로그인해야 한다. headless 실행은 OS keyring의 저장된 credentials를 사용한다.
+참여 CLI를 사용하려면 Antigravity CLI를 설치하고 공식 Google 계정으로 로그인해야 한다. headless 실행은 OS keyring의 저장된 credentials를 사용한다.
 Windows의 기본 실행 파일 위치는 `%LOCALAPPDATA%\agy\bin\agy.exe`다. PATH에 없더라도 이 위치를 자동으로 확인한다.
-PowerShell에서 로그인과 모델 접근을 확인한다.
+PowerShell에서 실행 파일 경로를 확인한다. 계정 사용량과 초과 사용 설정을 먼저 확인하고, 안전 조건이 확인된 뒤에만 스킬의 `doctor --included-only gemini`로 모델 목록과 로그인을 점검한다.
 
 ```powershell
 $agy = Join-Path $env:LOCALAPPDATA 'agy\bin\agy.exe'
-& $agy --version
-& $agy models
+Test-Path -LiteralPath $agy
 ```
 
-`agy models`는 계정으로 조회 가능한 모델 목록을 보여주며 답변을 생성하지 않는다. 로그인하려면 `& $agy`를 실행하고 브라우저 안내를 따른다.
+로그인이 필요하면 `& $agy`를 실행하고 공식 브라우저 안내를 따른다. `agy -p /config`에서 CLI의 `useG1Credits=false`를 확인한다. `true`·잘못된 값이면 실행을 허용하지 않으며, 키가 없으면 공식 문서에 정의된 기본값 `false`를 적용한다. 앱의 초과 사용 설정을 별도로 확인한다면 `AI Credit Overages=Never`를 사용한다.
 이 스킬은 로그인·브라우저 인증을 시작하지 않으며 Gemini API key나 Application Default Credentials로 전환하지 않는다.
 기본 모델 ID는 gemini-3.8-flash-medium이다. 모델 문서에서 Free, Plus, Pro, Ultra, Enterprise에 제공되는 것으로 표시된 모델을 기본값으로 선택한다.
 
@@ -55,7 +54,6 @@ Node.js 22 이상으로 설치된 스킬 폴더의 `scripts/council.mjs`를 실�
 실행 기록은 [실행 규약](execution.md)에 따라 설치 폴더 밖의 개인 작업 위치에 둔다.
 설치된 파일을 수정해 실행별 질문·초안·설정 상태를 저장하지 않는다.
 
-CLI 버전·인증·설정 모델의 사용 가능 여부는 `doctor`로 확인 가능한 범위부터 점검한다. Google 참여자는 `agy models`로 계정 접근과 모델 목록을 확인한다.
-기본 정책은 기존 공식 로그인이 확인된 CLI의 실행을 허용하며, 추가 과금 여부는 확인되지 않을 수 있다.
-스킬 발견·사전 점검 통과만으로 실제 모델 접근·무료 실행·추가 과금 없음을 보장하지 않는다.
-Codex 인증은 `codex login status`, Claude Code 인증은 실행 중 `/status`로 확인한다. 로그인이 필요하면 `codex login` 또는 Claude Code에서 `/login`을 실행한다.
+실행할 때마다 [계정·비용 확인](account-checks.md)을 먼저 수행한다. 모든 활성 제공자의 로그인은 읽기 전용으로 검사한다. 한도·초과 설정을 확인한 제공자만 `doctor`·`draft`·`review`의 `--included-only`에 명시해 모델 요청을 허용한다. 목록에서 빠진 제공자는 로그인 검사만 하고 모델 요청은 보내지 않는다.
+이 스킬은 확인된 제공자의 기존 로그인 상태를 매 호출 검사한다. 인증 실패 시 Codex는 `codex login`, Claude Code는 `claude`를 실행한 뒤 `/login`, Antigravity CLI는 `agy`를 실행해 공식 로그인 안내를 따른다. 자동 인증은 시작하지 않는다.
+다른 저장소에서 실행해도 인증 사전 점검은 호출 저장소 CWD에서 진행하고, 실제 모델 요청은 전용 임시 폴더에서 실행한다. 스킬 발견·사전 점검 통과는 실제 모델 접근·잔여 한도·추가 과금 없음의 보증이 아니다.

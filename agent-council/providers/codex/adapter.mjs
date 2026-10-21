@@ -29,8 +29,12 @@ export async function preflight(options) {
       cliVersion: inspected.cliVersion,
     };
   }
-  // Login status does not establish whether account usage credits can be consumed.
-  return billingDecision(options.config, inspected.cliVersion);
+  // Authentication is reported even when the user has not confirmed included usage.
+  return billingDecision(
+    inspected.cliVersion,
+    "existing_login",
+    options.includedOnly === true ? "included_only" : "unconfirmed",
+  );
 }
 
 // 지정 모델·추론 강도와 도구 제한을 적용한 Codex 실행 명령 및 표준 입력을 구성한다.

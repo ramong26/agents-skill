@@ -79,19 +79,18 @@ export async function preflight(options) {
     "--sandbox",
   ];
   if (effort) requiredFlags.push("--effort");
-  const inspected = await inspectCli(id, options, requiredFlags);
-  if (!inspected.ok) return inspected;
-
   let settings;
   try {
     settings = readSettings(options.env || {});
   } catch {
-    return {
-      ok: false,
-      code: "isolation_unconfirmed",
-      cliVersion: inspected.cliVersion,
-    };
+    return { ok: false, code: "isolation_unconfirmed" };
   }
+  // Current Antigravity CLI settings document false as the default for this option.
+  if (
+    settings.useG1Credits !== undefined &&
+    settings.useG1Credits !== false
+  )
+    return billingDecision(null, null);
   if (
     settings.modelProvider !== undefined &&
     settings.modelProvider !== null &&
@@ -100,14 +99,12 @@ export async function preflight(options) {
     return {
       ok: false,
       code: "auth_policy_conflict",
-      cliVersion: inspected.cliVersion,
     };
   if (!isolationAllowed(settings))
-    return {
-      ok: false,
-      code: "isolation_unconfirmed",
-      cliVersion: inspected.cliVersion,
-    };
+    return { ok: false, code: "isolation_unconfirmed" };
+
+  const inspected = await inspectCli(id, options, requiredFlags);
+  if (!inspected.ok) return inspected;
 
   const modelCheck = await inspected.run(["models"], 30000);
   const modelOutput = `${modelCheck.stdout ?? ""}\n${modelCheck.stderr ?? ""}`;
@@ -117,12 +114,15 @@ export async function preflight(options) {
       code: modelCheck.code,
       cliVersion: inspected.cliVersion,
     };
-  if (modelCheck.exitCode !== 0)
+  if (modelCheck.exitCode !== 0) {
+    const code = classifyError(modelOutput);
     return {
       ok: false,
-      code: classifyError(modelOutput),
+      code,
+      auth: code === "credential_store_unavailable" ? "unconfirmed" : null,
       cliVersion: inspected.cliVersion,
     };
+  }
   if (
     /please sign in|not logged into antigravity|authentication required/i.test(
       modelOutput,
@@ -139,9 +139,9 @@ export async function preflight(options) {
 
   // The models command confirms keyring-backed account access without generating a response.
   return billingDecision(
-    options.config,
     inspected.cliVersion,
     "existing_login",
+    options.includedOnly === true ? "included_only" : "unconfirmed",
   );
 }
 
