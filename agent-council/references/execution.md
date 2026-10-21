@@ -1,7 +1,7 @@
 # 실행 규약
 
 총괄은 현재 세션이며 실행기는 CLI 병렬 실행과 기록을 담당한다.
-필요 환경은 Node.js 22 이상과 사용할 공식 CLI다. 각 CLI 설치·로그인·모델 접근은 별도 조건이다.
+필요 환경은 Node.js 22 이상과 사용할 공식 CLI다. Google 참여 CLI는 Antigravity CLI(agy)이며 Gemini CLI 참여자와 다른 어댑터를 사용한다.
 스킬이 설치된 절대 경로를 `SKILL`로, 개인 로컬 기록 경로를 `RUNS`로 해석한다.
 명령 예시의 `<...>`는 실제 절대 경로로 바꾸고 공백·한글 경로는 따옴표로 감싼다.
 
@@ -41,7 +41,7 @@ node "<SKILL>/scripts/council.mjs" review --run "<run-directory>" --request "<re
 node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verification "<verification.md>" --final "<final.md>"
 ```
 
-- `doctor`: 모델 질문을 보내지 않고 CLI·인증·비용 정책의 확인 가능한 상태를 점검한다.
+- `doctor`: 모델 답변을 생성하지 않고 CLI·인증·설정 모델 목록·비용 정책의 확인 가능한 상태를 점검한다. Google 참여자는 `agy models`를 실행한다.
 - `draft`: 실행별 고유 디렉터리를 만들고 독립 초안을 병렬로 수집한다. 반환된 `runDir`를 후속 명령에 사용한다.
 - `collect`: 저장된 상태·초안·추가 검토를 읽는다. 새 모델 요청을 보내지 않는다.
 - `review`: 초안에 성공한 대상만 추가 검토한다. 한 실행에서 한 번만 허용한다.
@@ -79,9 +79,10 @@ node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verificati
 설치 위치에 질문·초안·임시 파일을 쌓지 않는다.
 각 결과는 서비스, 단계, 성공/제외, 실패 코드, 최종 답변, 요청 모델, 확인 모델, CLI 버전, 소요 시간을 구분한다.
 `auth`와 `billing`은 별도 항목이다. `auth: existing_login`은 기존 로그인 경로를 확인했다는 뜻이고 `billing: unconfirmed`는 추가 과금 여부를 확인하지 못했다는 뜻이다.
-Gemini의 `existing_login_configured`는 OAuth 선택 설정과 캐시 파일 존재만 확인했다는 뜻이다. 토큰 값은 읽지 않으며 만료·모델 접근은 실제 비대화형 요청의 결과로 판정한다.
-Gemini는 전역 `GEMINI.md`의 영향을 받을 수 있다. 공통 질문의 동일 전달과 다른 초안을 보지 않는 절차적 독립성을 보장하며, 서비스별 시스템 지침까지 동일하다고 주장하지 않는다.
+Antigravity CLI의 `doctor`는 `agy models`가 성공하고 설정 모델이 목록에 있는지 확인한다. CLI는 OS keyring의 token profile을 사용하며 스킬은 토큰을 직접 읽지 않는다. 실제 headless 요청에서 인증 오류가 나면 해당 참여자를 제외한다.
+Antigravity CLI는 전역 GEMINI.md, Skills, plugins, MCP 설정의 영향을 받을 수 있다. 실행별 전용 작업 폴더만 workspace로 지정하고 --sandbox를 사용한다. 기본 workspace 파일 접근은 해당 임시 폴더에 제한되며 글로벌 permissions.allow가 비어 있지 않거나 allowNonWorkspaceAccess가 켜져 있으면 사전 제외한다. 결과 stream에서 도구 호출이 관찰되면 답변을 취합하지 않는다.
 확인 모델이 없으면 `null` 또는 확인 불가로 남기며 모델 본문의 자기소개로 채우지 않는다.
+Antigravity CLI의 공개 stream-json 예시는 실제 모델 식별자를 결과에 포함하지 않는다. 별도 메타데이터가 없으면 actualModel을 null로 기록하고 요청 모델의 본문 자기소개로 채우지 않는다.
 진행 이벤트와 원시 오류 로그를 정상 답변이나 검증 근거로 사용하지 않는다.
 
 상태의 완료 단계는 `draft_complete`, `review_complete`, `finalized`이며 취소는 `cancelled`다.
@@ -104,8 +105,9 @@ Gemini는 전역 `GEMINI.md`의 영향을 받을 수 있다. 공통 질문의 �
 선택 정책 `skip`에서는 공식 상태·설정만으로 포함 사용량 외 과금 가능성을 배제할 수 없으면 `billing_unconfirmed`로 요청 전에 제외한다.
 두 정책 모두 기존 공식 로그인 경로가 없거나 확인되지 않으면 제외한다. API 키·프록시·다른 계정으로 대체하지 않는다.
 정책 확인을 위한 유료 모델 질문, 토큰 값 추출·기록, API 인증 전환은 하지 않는다.
-`doctor`는 설치·지원 옵션·인증 경로·정책상 실행 가능 여부를 확인하는 사전 점검이다.
-사전 점검 통과는 실제 토큰 유효성·모델 접근·잔여 한도·추가 과금 없음의 보증이 아니다.
+AGY의 --input-format stream-json은 --output-format stream-json과 함께 사용하며 stdin user 이벤트를 보낸다. 파서는 progress 이벤트가 아닌 terminal result의 status와 response를 확인한다. 알 수 없는 모델은 비정상 종료하며 다른 모델로 조용히 대체하지 않는다.
+`doctor`는 설치·지원 옵션·인증 상태·설정 모델 목록·정책상 실행 가능 여부를 확인하는 사전 점검이다. 모델 생성 요청은 보내지 않는다.
+사전 점검 통과는 실제 모델 응답·잔여 한도·추가 과금 없음의 보증이 아니다.
 실제 모델 요청에서 인증 만료·한도·모델 접근 오류가 나면 확인된 사유로 해당 참여자를 제외한다.
 실제 요청하지 않은 서비스의 모델 호출 성공이나 무료 이용 가능성을 검증했다고 보고하지 않는다.
 
