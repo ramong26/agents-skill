@@ -1,0 +1,22 @@
+{
+  "providers": {
+    "codex": { "enabled": true, "model": "gpt-6.1-sol", "effort": "medium" },
+    "claude": { "enabled": true, "model": "claude-opus-5-5", "effort": "medium" },
+    "gemini": { "enabled": true, "model": "gemini-3.5-flash-lite" }
+  },
+  "execution": {
+    "draft_timeout_seconds": 150,
+    "review_timeout_seconds": 90,
+    "runner_retries": 0,
+    "max_review_rounds": 1
+  },
+  "policy": {
+    "auth": "existing_login_only",
+    "on_provider_failure": "skip",
+    "api_fallback": false,
+    "model_fallback": false,
+    "interactive_auth": false,
+    "purchase_or_topup": false,
+    "on_unconfirmed_billing": "allow_existing_login"
+  }
+}
