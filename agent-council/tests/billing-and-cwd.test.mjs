@@ -6,7 +6,8 @@ import { doctor, loadConfig, runDraft } from '../scripts/core.mjs';
 import { validateConfig } from '../scripts/settings.mjs';
 import { ids } from '../scripts/records.mjs';
 import { preflight as geminiPreflight } from '../providers/gemini/adapter.mjs';
-import { preflight as claudePreflight } from '../providers/claude/adapter.mjs';
+import { preflight as codexPreflight, parseResult as parseCodex } from '../providers/codex/adapter.mjs';
+import { preflight as claudePreflight, parseResult as parseClaude } from '../providers/claude/adapter.mjs';
 import { classifyError } from '../providers/shared.mjs';
 
 async function temporaryDirectory(t) {
@@ -15,39 +16,42 @@ async function temporaryDirectory(t) {
   return path;
 }
 
-test('doctor checks login without included-only confirmation but never requests a model answer', async () => {
-  let preflightCalls = 0;
+test('doctor checks enabled logins without a billing confirmation or model request', async () => {
+  const calls = [];
   const adapters = Object.fromEntries(ids.map(id => [id, {
-    preflight: async options => {
-      preflightCalls += 1;
-      assert.equal(options.includedOnly, false);
-      return { ok: false, code: 'billing_unconfirmed', auth: 'existing_login', billing: 'unconfirmed' };
+    preflight: async () => {
+      calls.push(id);
+      return { ok: true, auth: 'existing_login', billing: 'unconfirmed' };
     },
   }]));
-
   const result = await doctor({ config: await loadConfig(), adapters, environment: {} });
-
-  assert.equal(preflightCalls, ids.length);
-  assert.deepEqual(result.providers.map(item => item.code), ids.map(() => 'billing_unconfirmed'));
-  assert.deepEqual(result.providers.map(item => item.auth), ids.map(() => 'existing_login'));
+  assert.deepEqual(calls.sort(), ['claude', 'codex', 'gemini']);
+  for (const item of result.providers) {
+    assert.equal(item.ok, true);
+    assert.equal(item.code, null);
+    assert.equal(item.billing, 'unconfirmed');
+    assert.equal(item.usageHint, null);
+    assert.equal(item.loginHint, null);
+  }
 });
 
-test('doctor does not claim included billing for an unconfirmed account', async () => {
+test('auth status parsing failures do not request re-login', async () => {
   const adapters = Object.fromEntries(ids.map(id => [id, {
-    preflight: async () => id === 'gemini'
-      ? { ok: false, code: 'auth_failed' }
-      : { ok: false, code: 'billing_unconfirmed', auth: 'existing_login', billing: 'unconfirmed' },
+    preflight: async () => ({ ok: false, code: 'auth_unconfirmed' }),
   }]));
   const result = await doctor({ config: await loadConfig(), adapters, environment: {} });
-  const gemini = result.providers.find(item => item.provider === 'gemini');
-  assert.equal(gemini.code, 'auth_failed');
-  assert.equal(gemini.billing, 'unconfirmed');
-  assert.equal(gemini.loginHint, 'agy를 실행한 뒤 안내에 따라 Google 계정으로 로그인');
+  for (const item of result.providers) {
+    assert.equal(item.code, 'auth_unconfirmed');
+    assert.equal(item.loginHint, null);
+  }
 });
 
-test('legacy allow_existing_login policy is rejected', async () => {
+test('default config uses existing login and stops on errors without model fallback', async () => {
   const config = await loadConfig();
-  config.policy.on_unconfirmed_billing = 'allow_existing_login';
+  assert.equal(config.providers.gemini.enabled, true);
+  assert.equal(config.policy.on_unconfirmed_billing, 'use_existing_login');
+  assert.equal(config.policy.model_fallback, false);
+  config.policy.on_unconfirmed_billing = 'skip';
   assert.throws(() => validateConfig(config), error => error.code === 'invalid_config');
 });
 
@@ -91,120 +95,59 @@ test('Claude Free login is confirmed but Claude Code model calls are blocked', a
   assert.equal(result.billing, 'unconfirmed');
 });
 
-test('included model fallback runs once for quota or access failures, then stops', async t => {
+test('both official adapters accept existing login without a billing assertion', async t => {
+  const home = await temporaryDirectory(t);
+  const binDir = join(home, 'bin');
+  await mkdir(binDir);
+  for (const name of ['codex', 'claude']) await writeFile(join(binDir, name + (process.platform === 'win32' ? '.exe' : '')), 'mock');
+  for (const [name, preflight] of [['codex', codexPreflight], ['claude', claudePreflight]]) {
+    const result = await preflight({
+      env: { USERPROFILE: home, PATH: binDir }, cwd: home,
+      runProcess: async ({ args }) => {
+        if (args[0] === '--version') return { exitCode: 0, stdout: '1.0.0', stderr: '' };
+        if (args.includes('--help')) return { exitCode: 0, stdout: '--ignore-user-config --ignore-rules --ephemeral --json --safe-mode --restricted --tools --strict-mcp-config --permission-prompts', stderr: '' };
+        return { exitCode: 0, stdout: name === 'codex' ? 'Logged in using ChatGPT' : JSON.stringify({ loggedIn: true, authMethod: 'claude.ai', subscriptionType: 'pro' }), stderr: '' };
+      },
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.auth, 'existing_login');
+    assert.equal(result.billing, 'unconfirmed');
+  }
+});
+
+test('draft runs logged-in providers without any included-only option and never invokes disabled AGY', async t => {
   const root = await temporaryDirectory(t);
-  const config = await loadConfig();
-  config.providers.codex.freeFallbackModel = 'gpt-5.6-terra';
   const calls = [];
   const adapters = Object.fromEntries(ids.map(id => [id, {
-    preflight: async ({ includedOnly }) => ({
-      ok: includedOnly && id === 'codex',
-      code: includedOnly && id === 'codex' ? null : 'billing_unconfirmed',
-      auth: 'existing_login',
-      billing: includedOnly && id === 'codex' ? 'included_only' : 'unconfirmed',
-    }),
-    buildInvocation: ({ model }) => ({ command: 'mock', args: [model], input: 'prompt', env: {} }),
-    parseResult: ({ stdout, exitCode, model }) => exitCode === 0
-      ? { status: 'success', answer: `answer from ${model}`, actualModel: model }
-      : { status: 'excluded', code: stdout, actualModel: null },
-  }]))
-
-  const result = await runDraft({
-    request: { question: 'compare' }, runsDir: root, config, adapters,
-    environment: {}, includedOnly: ['codex'],
-    runProcess: async ({ args }) => {
-      calls.push(args[0]);
-      return calls.length === 1
-        ? { exitCode: 1, stdout: 'quota_exhausted', stderr: '' }
-        : { exitCode: 0, stdout: '', stderr: '' };
-    },
-  });
-
-  const codex = result.providers.find(item => item.provider === 'codex');
-  assert.deepEqual(calls, ['gpt-6.1-sol', 'gpt-5.6-terra']);
-  assert.equal(codex.status, 'success');
-  assert.equal(codex.requestedModel, 'gpt-6.1-sol');
-  assert.equal(codex.actualModel, 'gpt-5.6-terra');
-  assert.equal(codex.freeFallbackModel, 'gpt-5.6-terra');
-  assert.equal(codex.fallbackReason, 'quota_exhausted');
+    preflight: async () => ({ ok: true, auth: 'existing_login', billing: 'unconfirmed' }),
+    buildInvocation: ({ prompt }) => { calls.push(id); return { command: 'mock', args: [], input: prompt, env: {} }; },
+    parseResult: ({ model }) => ({ status: 'success', answer: 'answer', actualModel: model }),
+  }]));
+  const config = await loadConfig();
+  config.providers.gemini.enabled = false;
+  const result = await runDraft({ request: { question: '2+2?' }, runsDir: root, config, adapters, environment: {}, runProcess: async () => ({ exitCode: 0, stdout: '', stderr: '' }) });
+  assert.deepEqual(calls.sort(), ['claude', 'codex']);
+  assert.equal(result.providers.filter(item => item.status === 'success').length, 2);
+  assert.equal(result.providers.find(item => item.provider === 'gemini').code, 'provider_disabled');
 });
 
-test('unconfirmed billing never tries the configured free model fallback', async t => {
+test('runtime errors stop only that provider once and give hints only for actual quota or logout', async t => {
   const root = await temporaryDirectory(t);
-  const config = await loadConfig();
-  let modelCalls = 0;
-  const adapters = Object.fromEntries(ids.map(id => [id, {
-    preflight: async () => ({ ok: false, code: 'billing_unconfirmed', auth: 'existing_login', billing: 'unconfirmed' }),
-    buildInvocation: () => { modelCalls += 1; throw new Error('must not invoke'); },
-    parseResult: () => { throw new Error('must not parse'); },
-  }]));
-  const result = await runDraft({ request: { question: 'compare' }, runsDir: root, config, adapters, environment: {} });
-  assert.equal(modelCalls, 0);
-  assert.ok(result.providers.every(item => item.code === 'billing_unconfirmed'));
-});
-
-test('a failed free model fallback is not retried', async t => {
-  const root = await temporaryDirectory(t);
-  const config = await loadConfig();
-  let modelCalls = 0;
-  const adapters = Object.fromEntries(ids.map(id => [id, {
-    preflight: async ({ includedOnly }) => ({
-      ok: includedOnly && id === 'codex',
-      code: includedOnly && id === 'codex' ? null : 'billing_unconfirmed',
-      auth: 'existing_login',
-      billing: includedOnly && id === 'codex' ? 'included_only' : 'unconfirmed',
-    }),
-    buildInvocation: ({ model }) => ({ command: 'mock', args: [model], input: 'prompt', env: {} }),
-    parseResult: ({ stdout }) => ({ status: 'excluded', code: stdout, actualModel: null }),
-  }]));
-  const result = await runDraft({
-    request: { question: 'compare' }, runsDir: root, config, adapters,
-    environment: {}, includedOnly: ['codex'],
-    runProcess: async ({ args }) => {
-      modelCalls += 1;
-      return { exitCode: 1, stdout: 'quota_exhausted', stderr: '' };
-    },
-  });
-  const codex = result.providers.find(item => item.provider === 'codex');
-  assert.equal(modelCalls, 2);
-  assert.equal(codex.status, 'excluded');
-  assert.equal(codex.code, 'quota_exhausted');
-  assert.equal(codex.fallbackReason, 'quota_exhausted');
-  assert.match(codex.actionHint, /무료 포함 대체 모델.*한도도 소진/);
-});
-
-test('a model preflight failure checks the configured free model before use', async t => {
-  const root = await temporaryDirectory(t);
-  const config = await loadConfig();
-  const preflightModels = [];
-  const invocationModels = [];
-  const adapters = Object.fromEntries(ids.map(id => [id, {
-    preflight: async ({ config: candidateConfig, includedOnly }) => {
-      const model = candidateConfig.providers[id].model;
-      preflightModels.push([id, model]);
-      if (id !== 'codex' || !includedOnly)
-        return { ok: false, code: 'billing_unconfirmed', auth: 'existing_login', billing: 'unconfirmed' };
-      return model === config.providers.codex.model
-        ? { ok: false, code: 'model_unavailable', auth: 'existing_login', billing: 'included_only' }
-        : { ok: true, code: null, auth: 'existing_login', billing: 'included_only' };
-    },
-    buildInvocation: ({ model }) => {
-      invocationModels.push(model);
-      return { command: 'mock', args: [model], input: 'prompt', env: {} };
-    },
-    parseResult: ({ model }) => ({ status: 'success', answer: 'free model answer', actualModel: model }),
-  }]));
-  const result = await runDraft({
-    request: { question: 'compare' }, runsDir: root, config, adapters,
-    environment: {}, includedOnly: ['codex'],
-    runProcess: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
-  });
-  const codex = result.providers.find(item => item.provider === 'codex');
-  assert.deepEqual(preflightModels.filter(([id]) => id === 'codex').map(([, model]) => model),
-    ['gpt-6.1-sol', 'gpt-5.6-terra']);
-  assert.deepEqual(invocationModels, ['gpt-5.6-terra']);
-  assert.equal(codex.status, 'success');
-  assert.equal(codex.fallbackReason, 'model_unavailable');
+  for (const code of ['quota_exhausted', 'rate_limited', 'model_unavailable', 'auth_failed', 'auth_unconfirmed', 'network_error']) {
+    const calls = [];
+    const adapters = Object.fromEntries(ids.map(id => [id, {
+      preflight: async () => ({ ok: true, auth: 'existing_login', billing: 'unconfirmed' }),
+      buildInvocation: () => { calls.push(id); return { command: 'mock', args: [], input: '', env: {} }; },
+      parseResult: ({ model }) => id === 'codex' ? { status: 'excluded', code } : { status: 'success', answer: 'retained', actualModel: model },
+    }]));
+    const result = await runDraft({ request: { question: 'compare' }, runsDir: root, config: await loadConfig(), adapters, environment: {}, runProcess: async () => ({ exitCode: 0, stdout: '', stderr: '' }) });
+    assert.equal(calls.filter(id => id === 'codex').length, 1);
+    const codex = result.providers.find(item => item.provider === 'codex');
+    assert.equal(codex.code, code);
+    assert.equal(codex.loginHint, code === 'auth_failed' ? 'codex login' : null);
+    assert.equal(Boolean(codex.usageHint), code === 'quota_exhausted');
+    assert.equal(result.providers.find(item => item.provider === 'claude').answer, 'retained', JSON.stringify(result.providers));
+  }
 });
 
 test('draft checks login from caller repository but runs the model in an isolated folder', async t => {
@@ -217,12 +160,12 @@ test('draft checks login from caller repository but runs the model in an isolate
   const adapters = Object.fromEntries(ids.map(id => [id, {
     preflight: async options => {
       preflightCwd = options.cwd;
-      assert.equal(options.includedOnly, id === 'codex');
+      assert.equal(options.includedOnly, false);
       return {
         ok: id === 'codex',
-        code: id === 'codex' ? null : 'billing_unconfirmed',
+        code: id === 'codex' ? null : 'auth_failed',
         auth: 'existing_login',
-        billing: id === 'codex' ? 'included_only' : 'unconfirmed',
+        billing: 'unconfirmed',
         cliVersion: '1.0.0',
       };
     },
@@ -240,7 +183,6 @@ test('draft checks login from caller repository but runs the model in an isolate
     config,
     adapters,
     environment: {},
-    includedOnly: ['codex'],
     callerCwd,
     runProcess: async options => {
       processCwd = options.cwd;
@@ -253,8 +195,8 @@ test('draft checks login from caller repository but runs the model in an isolate
   assert.notEqual(processCwd, callerCwd);
   assert.match(processCwd, /work[\\/]draft[\\/]codex$/);
   assert.equal(result.providers.find(item => item.provider === 'codex').status, 'success');
-  assert.ok(result.providers.filter(item => item.provider !== 'codex').every(item =>
-    item.code === 'billing_unconfirmed' && item.auth === 'existing_login'));
+  assert.ok(result.providers.filter(item => item.provider === 'claude').every(item =>
+    item.code === 'auth_failed' && item.auth === 'existing_login'));
 });
 
 test('Antigravity blocks explicit or malformed personal-credit fallback settings', async t => {
@@ -274,7 +216,7 @@ test('Antigravity blocks explicit or malformed personal-credit fallback settings
       runProcess: async () => { processCalls += 1; throw new Error('must not run'); },
     });
 
-    assert.equal(result.code, 'billing_unconfirmed');
+    assert.equal(result.code, 'credit_fallback_enabled');
     assert.equal(result.billing, 'unconfirmed');
   }
   assert.equal(processCalls, 0);
@@ -293,7 +235,6 @@ test('Antigravity accepts its documented default or explicit off personal-credit
   for (const settings of [{ useG1Credits: false }, {}]) {
     await writeFile(join(configDir, 'settings.json'), JSON.stringify(settings));
     const result = await geminiPreflight({
-      includedOnly: true,
       config: { providers: { gemini: { model } } },
       env: { USERPROFILE: home, PATH: binDir },
       cwd: home,
@@ -307,7 +248,7 @@ test('Antigravity accepts its documented default or explicit off personal-credit
     });
 
     assert.equal(result.ok, true);
-    assert.equal(result.billing, 'included_only');
+    assert.equal(result.billing, 'unconfirmed');
   }
   assert.deepEqual(calls.map(args => args[0]), ['--version', '--help', 'models', '--version', '--help', 'models']);
 });
@@ -320,18 +261,51 @@ test('keyring denial preserves an unconfirmed login and does not ask for login',
   const config = await loadConfig();
   config.providers.codex.enabled = false;
   config.providers.claude.enabled = false;
-  const result = await doctor({
-    config, adapters: { gemini: { preflight: geminiPreflight } },
-    environment: { USERPROFILE: home, PATH: binDir }, cwd: home,
-    runProcess: async ({ args }) => {
-      if (args[0] === '--version') return { exitCode: 0, stdout: '1.4.4', stderr: '' };
-      if (args[0] === '--help') return { exitCode: 0, stdout: '--input-format --output-format --model --sandbox', stderr: '' };
-      return { exitCode: 1, stdout: '', stderr: 'You are not logged into Antigravity.\nFailed to load stored token from keyring: Access is denied.' };
-    },
-  });
-  const gemini = result.providers.find(item => item.provider === 'gemini');
-  assert.equal(gemini.code, 'credential_store_unavailable');
-  assert.equal(gemini.auth, 'unconfirmed');
-  assert.equal(gemini.loginHint, null);
-  assert.match(gemini.actionHint, /일반 사용자 터미널/);
+  config.providers.gemini.enabled = true;
+  for (const exitCode of [0, 1]) {
+    const result = await doctor({
+      config, adapters: { gemini: { preflight: geminiPreflight } },
+      environment: { USERPROFILE: home, PATH: binDir }, cwd: home,
+      runProcess: async ({ args }) => {
+        if (args[0] === '--version') return { exitCode: 0, stdout: '1.4.4', stderr: '' };
+        if (args[0] === '--help') return { exitCode: 0, stdout: '--input-format --output-format --model --sandbox', stderr: '' };
+        return { exitCode, stdout: '', stderr: 'You are not logged into Antigravity.\nFailed to load stored token from keyring: Access is denied.' };
+      },
+    });
+    const gemini = result.providers.find(item => item.provider === 'gemini');
+    assert.equal(gemini.code, 'credential_store_unavailable');
+    assert.equal(gemini.auth, 'unconfirmed');
+    assert.equal(gemini.loginHint, null);
+    assert.match(gemini.actionHint, /일반 사용자 터미널/);
+  }
+});
+
+
+test('startup warnings do not hide quota errors on stdout', () => {
+  for (const parseResult of [parseCodex, parseClaude]) {
+    const result = parseResult({ exitCode: 1, stderr: 'startup warning', stdout: '{"error":"usage_limit_reached"}' });
+    assert.equal(result.code, 'quota_exhausted');
+  }
+});
+
+test('Codex status connection and credential-store failures are not mislabeled as logout', async t => {
+  const home = await temporaryDirectory(t);
+  const binDir = join(home, 'bin');
+  await mkdir(binDir);
+  await writeFile(join(binDir, process.platform === 'win32' ? 'codex.exe' : 'codex'), 'mock');
+  for (const [stderr, expected] of [
+    ['network error: ENOTFOUND', 'network_error'],
+    ['Not logged in. Failed to load token from keyring: Access is denied.', 'credential_store_unavailable'],
+  ]) {
+    const result = await codexPreflight({
+      env: { USERPROFILE: home, PATH: binDir }, cwd: home,
+      runProcess: async ({ args }) => {
+        if (args[0] === '--version') return { exitCode: 0, stdout: '1.0.0', stderr: '' };
+        if (args.includes('--help')) return { exitCode: 0, stdout: '--ignore-user-config --ignore-rules --ephemeral --json', stderr: '' };
+        return { exitCode: 1, stdout: '', stderr };
+      },
+    });
+    assert.equal(result.ok, false);
+    assert.equal(result.code, expected);
+  }
 });

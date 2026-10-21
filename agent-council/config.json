@@ -3,7 +3,6 @@
     "codex": {
       "enabled": true,
       "model": "gpt-6.1-sol",
-      "freeFallbackModel": "gpt-5.6-terra",
       "effort": "medium"
     },
     "claude": {
@@ -26,9 +25,9 @@
     "auth": "existing_login_only",
     "on_provider_failure": "skip",
     "api_fallback": false,
-    "model_fallback": "free_included_only",
+    "model_fallback": false,
     "interactive_auth": false,
     "purchase_or_topup": false,
-    "on_unconfirmed_billing": "skip"
+    "on_unconfirmed_billing": "use_existing_login"
   }
 }

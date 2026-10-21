@@ -1,5 +1,5 @@
 import {
-  billingDecision,
+  existingLoginDecision,
   classifyError,
   failure,
   inspectCli,
@@ -10,7 +10,7 @@ import {
 
 export const id = "claude";
 
-// Claude CLI의 지원 옵션과 기존 OAuth 로그인을 확인하고 비용 정책에 따라 참여 여부를 판단한다.
+// 기존 OAuth 로그인으로 바로 실행하고 실제 요청 오류를 처리한다.
 export async function preflight(options) {
   const inspected = await inspectCli(id, options, [
     "--safe-mode",
@@ -54,8 +54,7 @@ export async function preflight(options) {
       auth: "existing_login",
       billing: "unconfirmed",
     };
-  // Authentication is reported even when the user has not confirmed included usage.
-  return billingDecision(
+  return existingLoginDecision(
     inspected.cliVersion,
     "existing_login",
     options.includedOnly === true ? "included_only" : "unconfirmed",
@@ -89,7 +88,7 @@ export function buildInvocation({ model, effort, prompt, env }) {
 
 // Claude 결과 JSON에서 최종 답변과 보고된 모델을 추출하고 오류·빈 답변·모델 불일치 결과를 제외한다.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
-  if (exitCode !== 0) return failure(classifyError(stderr || stdout));
+  if (exitCode !== 0) return failure(classifyError(stderr + "\n" + stdout));
   let result;
   try {
     result = parseObject(stdout);

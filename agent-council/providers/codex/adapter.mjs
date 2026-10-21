@@ -1,5 +1,5 @@
 import {
-  billingDecision,
+  existingLoginDecision,
   classifyError,
   failure,
   inspectCli,
@@ -9,7 +9,7 @@ import {
 
 export const id = "codex";
 
-// Codex CLI의 지원 옵션과 기존 ChatGPT 로그인을 확인하고 비용 정책에 따라 참여 여부를 판단한다.
+// 기존 ChatGPT 로그인으로 바로 실행하고 실제 요청 오류를 처리한다.
 export async function preflight(options) {
   const inspected = await inspectCli(id, options, [
     "--ignore-user-config",
@@ -23,14 +23,15 @@ export async function preflight(options) {
     return { ok: false, code: status.code, cliVersion: inspected.cliVersion };
   const text = `${status.stdout}\n${status.stderr}`;
   if (status.exitCode !== 0 || !/logged in using chatgpt/i.test(text)) {
+    const code = /api.?key/i.test(text) ? "auth_policy_conflict" : classifyError(text);
     return {
       ok: false,
-      code: /api.?key/i.test(text) ? "auth_policy_conflict" : "auth_failed",
+      code,
+      auth: code === "credential_store_unavailable" ? "unconfirmed" : null,
       cliVersion: inspected.cliVersion,
     };
   }
-  // Authentication is reported even when the user has not confirmed included usage.
-  return billingDecision(
+  return existingLoginDecision(
     inspected.cliVersion,
     "existing_login",
     options.includedOnly === true ? "included_only" : "unconfirmed",
@@ -83,7 +84,7 @@ export function buildInvocation({ model, effort, prompt, cwd, env }) {
 
 // Codex 이벤트에서 최종 답변과 보고된 모델을 추출하고 오류·도구 사용·모델 불일치 결과를 제외한다.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
-  if (exitCode !== 0) return failure(classifyError(stderr || stdout));
+  if (exitCode !== 0) return failure(classifyError(stderr + "\n" + stdout));
   let events;
   try {
     events = stdout

@@ -191,20 +191,10 @@ export async function inspectCli(
   return { ok: true, cliVersion, run };
 }
 
-export const unconfirmedBilling = (cliVersion) => ({
-  ok: false,
-  code: "billing_unconfirmed",
-  cliVersion,
-  auth: null,
-  billing: "unconfirmed",
-});
-
-export function billingDecision(
+export function existingLoginDecision(
   cliVersion,
   auth = null,
   billingStatus = "unconfirmed",
 ) {
-  if (billingStatus === "included_only")
-    return { ok: true, cliVersion, auth, billing: billingStatus };
-  return { ...unconfirmedBilling(cliVersion), auth };
+  return { ok: auth === "existing_login", cliVersion, auth, billing: billingStatus };
 }
