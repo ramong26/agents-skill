@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import test from 'node:test';
-import { doctor, loadConfig, runDraft } from '../scripts/core.mjs';
+import { doctor, loadConfig, runDraft, runReview } from '../scripts/core.mjs';
 import { validateConfig } from '../scripts/settings.mjs';
 import { ids } from '../scripts/records.mjs';
 import { preflight as geminiPreflight } from '../providers/gemini/adapter.mjs';
@@ -129,6 +129,30 @@ test('draft runs logged-in providers without any included-only option and never 
   assert.deepEqual(calls.sort(), ['claude', 'codex']);
   assert.equal(result.providers.filter(item => item.status === 'success').length, 2);
   assert.equal(result.providers.find(item => item.provider === 'gemini').code, 'provider_disabled');
+});
+
+test('review reuses existing logins without billing confirmation or an allowlist', async t => {
+  const root = await temporaryDirectory(t);
+  const config = await loadConfig();
+  const adapters = Object.fromEntries(ids.map(id => [id, {
+    preflight: async options => {
+      assert.equal(options.includedOnly, false);
+      return { ok: true, auth: 'existing_login', billing: 'unconfirmed' };
+    },
+    buildInvocation: ({ prompt }) => ({ command: 'mock', args: [], input: prompt, env: {} }),
+    parseResult: ({ model }) => ({ status: 'success', answer: 'review answer', actualModel: model }),
+  }]));
+  const run = await runDraft({
+    request: { question: '2+2?' }, runsDir: root, config, adapters, environment: {},
+    runProcess: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+  });
+  const result = await runReview({
+    runDir: run.runDir, request: { issue: 'Check the arithmetic.', providers: ['codex'] },
+    adapters, environment: {}, runProcess: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
+  });
+  assert.equal(result.phase, 'review_complete');
+  assert.equal(result.providers[0].status, 'success');
+  assert.equal(result.providers[0].billing, 'unconfirmed');
 });
 
 test('runtime errors stop only that provider once and give hints only for actual quota or logout', async t => {

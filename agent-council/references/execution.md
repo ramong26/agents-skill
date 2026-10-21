@@ -44,7 +44,7 @@ node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verificati
 - `doctor`: 활성 제공자의 설치·지원 옵션·기존 로그인을 읽기 전용 점검한다. 사용량·과금 확인을 요구하거나 모델 질문을 보내지 않는다.
 - `draft`: 활성 제공자의 기존 로그인을 확인하고 같은 질문으로 독립 초안을 병렬 수집한다. 추가 옵션 없이 실행한다. 실제 인증·한도·모델·실행 오류는 해당 제공자만 제외한다. 비활성화한 제공자는 호출하지 않는다. 반환된 `runDir`를 후속 명령에 사용한다.
 - `collect`: 저장된 상태·초안·추가 검토를 읽는다. 새 모델 요청을 보내지 않는다.
-- `review`: 초안에 성공한 대상만 추가 검토한다. 한 실행에서 한 번만 허용하며 로그인과 추가 과금 설정을 다시 확인하고 목록을 다시 전달한다.
+- `review`: 초안에 성공한 대상만 추가 검토한다. 한 실행에서 한 번만 허용하며 저장된 원 질문과 기존 CLI 로그인을 사용한다. 추가 로그인·사용량·과금 확인이나 제공자 허용 목록 입력을 요구하지 않는다.
 - `finalize`: 총괄이 이미 작성한 두 파일을 실행 기록에 저장한다. 통합 모델 API를 호출하지 않는다.
 - 최종 문서는 초안 3개·추가 검토 3개의 전문과 종합을 담도록 UTF-8 16 MiB까지 허용한다. 검증 문서와 요청 입력은 각각 1 MiB 제한을 유지한다. 큰 초안을 임의로 잘라 원문이라고 표시하지 않는다.
 - `doctor`와 `draft`에만 `--config "<config.json>"`을 지정할 수 있다. 후속 단계는 해당 실행에 저장된 설정을 사용한다.
@@ -79,7 +79,7 @@ node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verificati
 실행기는 설정과 중립 작업 폴더 등 실행에 필요한 내부 파일을 함께 관리할 수 있다.
 설치 위치에 질문·초안·임시 파일을 쌓지 않는다.
 각 결과는 서비스, 단계, 성공/제외, 실패 코드, 조치 안내(`actionHint`), 필요한 경우 공식 로그인 명령(`loginHint`), 최종 답변, 요청 모델, 실제 확인 모델, 대체 모델과 전환 사유, CLI 버전, 소요 시간을 구분한다.
-`auth`와 `billing`은 별도 항목이다. `auth: existing_login`은 해당 호출에서 기존 로그인을 확인했다는 뜻이고 `billing: included_only`는 사용자가 추가 과금 경로를 껐다고 확인한 뜻이다. `billing: unconfirmed`는 과금 미확인 기록이며 실행을 막지 않는다. 잔여 사용량은 요청 전 보장하지 않으며, 한도 오류는 `quota_exhausted`로 반환한다.
+`auth`와 `billing`은 별도 항목이다. `auth: existing_login`은 해당 호출에서 기존 로그인을 확인했다는 뜻이다. `billing: included_only`는 호환용 `--included-only` 옵션으로 전달한 사용자 주장 표식이며 별도 확인한 사실이 아니다. `billing: unconfirmed`는 과금 상태를 확인하지 않았다는 기록이며 실행을 막지 않는다. 잔여 사용량은 요청 전 보장하지 않으며, 한도 오류는 `quota_exhausted`로 반환한다. CLI가 밝히지 않은 한도 종류나 추가 사용 여부를 추정하지 않는다.
 Google 참여자는 `useG1Credits`가 `true`이거나 값이 잘못됐으면 CLI 검사에서 제외한다. 키가 없으면 Antigravity CLI 문서에 기재된 기본값 `false`를 적용한다. `doctor`는 `agy models`가 성공하고 설정 모델이 목록에 있는지도 확인한다. CLI는 OS keyring의 계정 토큰을 사용하며 스킬은 토큰을 직접 읽지 않는다. 실제 headless 요청에서 인증 오류가 나면 해당 참여자를 제외한다.
 Antigravity CLI는 전역 GEMINI.md, Skills, plugins, MCP 설정의 영향을 받을 수 있다. 실행별 전용 작업 폴더만 workspace로 지정하고 --sandbox를 사용한다. 기본 workspace 파일 접근은 해당 임시 폴더에 제한되며 글로벌 permissions.allow가 비어 있지 않거나 allowNonWorkspaceAccess가 켜져 있으면 사전 제외한다. 결과 stream에서 도구 호출이 관찰되면 답변을 취합하지 않는다.
 확인 모델이 없으면 `null` 또는 확인 불가로 남기며 모델 본문의 자기소개로 채우지 않는다.
