@@ -26,7 +26,7 @@ const actionHints = {
   auth_unconfirmed: 'CLI 인증 상태를 해석하지 못해 해당 제공자를 건너뛰었습니다. 로그아웃으로 단정하거나 재로그인을 요구하지 않습니다.',
   credential_store_unavailable: '현재 실행 환경에서 OS 자격 증명 저장소에 접근하지 못했습니다. 일반 사용자 터미널에서 같은 doctor 명령으로 확인하세요. 이 결과만으로 로그아웃을 판단하거나 재로그인하지 마세요.',
   free_plan_unsupported: 'Claude Free에는 Claude Code가 포함되지 않습니다. Claude 웹 무료 모델이나 API로 바꾸지 않고 이 제공자는 건너뜁니다.',
-  quota_exhausted: '무료·포함 사용량 한도에 도달했습니다. 추가 과금이나 임의 모델 전환 없이 한도가 초기화될 때까지 기다리세요.',
+  quota_exhausted: 'CLI가 사용량 한도 초과를 반환해 이 제공자를 중단했습니다. 자동 재시도나 모델 전환은 하지 않았습니다. 한도 종류는 CLI 응답에 명시된 범위만 보고합니다.',
   rate_limited: '서비스가 요청 속도를 제한했습니다. 자동 재시도하지 않았습니다. 응답에 초기화 시간이 있으면 그 뒤 다시 실행하세요.',
   model_unavailable: '요청 모델을 사용할 수 없습니다. 모델 ID와 계정 접근을 확인하세요. 자동 모델 전환 없이 해당 제공자를 중단했습니다.',
   credit_fallback_enabled: 'Antigravity CLI의 개인 크레딧 사용이 켜져 있어 해당 제공자를 건너뛰었습니다. 설정을 자동 변경하지 않습니다.',
