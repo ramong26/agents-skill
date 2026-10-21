@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  billingDecision,
+  existingLoginDecision,
   classifyError,
   failure,
   inspectCli,
@@ -90,7 +90,7 @@ export async function preflight(options) {
     settings.useG1Credits !== undefined &&
     settings.useG1Credits !== false
   )
-    return billingDecision(null, null);
+    return { ok: false, code: "credit_fallback_enabled", billing: "unconfirmed" };
   if (
     settings.modelProvider !== undefined &&
     settings.modelProvider !== null &&
@@ -114,7 +114,10 @@ export async function preflight(options) {
       code: modelCheck.code,
       cliVersion: inspected.cliVersion,
     };
-  if (modelCheck.exitCode !== 0) {
+  if (
+    modelCheck.exitCode !== 0 ||
+    /please sign in|not logged into antigravity|authentication required/i.test(modelOutput)
+  ) {
     const code = classifyError(modelOutput);
     return {
       ok: false,
@@ -123,12 +126,6 @@ export async function preflight(options) {
       cliVersion: inspected.cliVersion,
     };
   }
-  if (
-    /please sign in|not logged into antigravity|authentication required/i.test(
-      modelOutput,
-    )
-  )
-    return { ok: false, code: "auth_failed", cliVersion: inspected.cliVersion };
   const model = options.config?.providers?.gemini?.model;
   if (!model || !modelOutput.includes(model))
     return {
@@ -138,7 +135,7 @@ export async function preflight(options) {
     };
 
   // The models command confirms keyring-backed account access without generating a response.
-  return billingDecision(
+  return existingLoginDecision(
     inspected.cliVersion,
     "existing_login",
     options.includedOnly === true ? "included_only" : "unconfirmed",

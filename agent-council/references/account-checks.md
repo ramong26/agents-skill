@@ -1,40 +1,49 @@
-# 사용량·인증 확인
+# 기존 로그인과 실제 오류 처리
 
-각 `doctor`, `draft`, `review` 실행은 해당 호출자의 저장소에서 CLI 로그인을 다시 확인한다. 이 확인은 모델 요청이 아니다. 로그인하지 않은 제공자는 로그인 명령을 안내하고 건너뛴다.
+## 기본 실행
 
-사용량을 자동 조회하는 공통 API는 없다. 필요하면 제공자 CLI의 읽기 전용 사용량 화면을 볼 수 있다. 사용량 잔여량을 사전에 확인하지 않아도 실행할 수 있지만, 실제 모델 요청은 `--included-only`에 적힌 제공자만 허용한다. 이 목록은 해당 제공자의 추가 과금·크레딧 경로가 꺼져 있음을 확인했다는 뜻이다. 사용량이 소진되면 CLI 오류를 그대로 분류하고 재시도하지 않는다.
+기본 참여자는 Codex·Claude Code·Antigravity CLI다. 특정 제공자를 빼려면 해당 실행의 `config.json`에서 `enabled: false`로 지정한다.
+기존 CLI 로그인으로 질문을 한 번 전달하고 실제 오류가 오면 해당 제공자만 중단한다. 로그인 갱신·사용량 사전 조회·과금 설정 확인·허용 목록 입력을 매번 사용자에게 요청하지 않는다.
+`doctor`는 선택적인 읽기 전용 진단이며 모델 질문을 보내지 않는다. `draft`와 `review`는 CLI 로그인 상태를 확인한 뒤 실행한다.
 
-## CLI 사용량 명령
+| 결과 | 처리 |
+|---|---|
+| `auth_failed` | 해당 제공자 중단, 실제 로그아웃일 때만 로그인 명령 표시 |
+| `auth_unconfirmed` | 상태 해석 실패로 제외, 로그아웃으로 단정하지 않음 |
+| `quota_exhausted` | 사용량 초과로 중단, 재시도·대체 모델 없음 |
+| `rate_limited` | 요청 제한으로 중단, 자동 재시도 없음 |
+| `credential_store_unavailable` | OS 자격 증명 접근 실패로 제외, 재로그인 요구 없음 |
+| `network_error`, `model_unavailable`, `timeout` | 확인된 사유로 해당 제공자만 제외 |
 
-| 제공자 | 로그인 확인 | 사용량 확인 |
-|---|---|---|
-| Codex | `codex login status` | `codex` 실행 후 `/status` |
-| Claude Code | `claude auth status` | `claude` 실행 후 `/usage`; `/usage-credits`에서 추가 사용이 꺼졌는지 확인 |
-| Antigravity | `agy models` | `agy -p /usage`; 크레딧은 `agy -p /credits`, 추가 사용 설정은 `agy -p /config` |
+로그인 명령은 Codex `codex login`, Claude `claude` 실행 후 `/login`, Antigravity `agy` 실행 후 공식 로그인 안내다. API 키·ADC·다른 계정으로 대체하지 않는다.
+사용량 조회는 사용자가 원할 때만 Codex `/status`, Claude `/usage`, AGY `agy -p /usage`를 사용한다. 정상 실행에는 이 조회가 필요 없다.
 
-Codex와 Claude의 사용량 명령은 대화형 CLI 안에서 실행한다. Antigravity의 `-p /usage`는 CLI가 처리하는 읽기 전용 사용량 명령이다. 로그인 안내가 나오면 스킬이 브라우저 로그인을 대신하거나 인증 코드를 수집하지 않는다.
+## PowerShell에서의 직접 호출
 
-Windows의 제한된 셸은 OS keyring을 읽지 못해 기존 로그인에도 일반적인 sign-in 오류를 출력할 수 있다. 로그에 keyring 접근 거부가 함께 있으면 `credential_store_unavailable`이며 로그인 상태는 미확인이다. 같은 저장소에서 일반 사용자 권한의 허용된 셸로 읽기 전용 `doctor`를 실행해 확인한다. 일반 셸에서 성공하면 기존 로그인을 유지한다. HOME·인증 환경변수 변경이나 토큰 복사로 우회하지 않는다. 모델 요청은 자동으로 재실행하지 않는다.
+스킬도 별도 터미널 창을 조작하지 않고 같은 방식으로 자식 프로세스를 실행한다. stdin으로 질문을 보내고 stdout의 답변을 수집한다. `Start-Process`로 대화형 창을 세 개 열 필요는 없다.
 
-## 제공자별 과금 차단
+```powershell
+codex exec --ignore-user-config --ignore-rules --ephemeral --skip-git-repo-check --sandbox read-only "2+2는 뭐야?"
+claude --print --safe-mode --restricted --tools "" --strict-mcp-config --mcp-config '{"mcpServers":{}}' --permission-mode dontAsk --permission-prompts none "2+2는 뭐야?"
+```
 
-### Codex
+Codex는 ChatGPT 계정, Claude는 Claude 계정의 기존 구독 로그인으로 실행한다. 한 서비스의 월 구독이 다른 서비스의 구독까지 제공하지는 않는다. 스킬은 API 키 인증을 거부하며 키를 출력하거나 계정을 전환하지 않는다.
 
-Free·Go 계정의 Codex CLI 모델은 `gpt-5.6-terra`를 사용한다. 다른 기본 모델에 접근할 수 없거나 그 모델의 사용 한도에 도달하면 설정된 이 무료·포함 모델을 한 번 시도할 수 있다. 그 요청도 한도에 도달하면 중단한다. `/status`는 남은 사용량과 초기화 시점을 보여준다. 크레딧 잔액이 `0`이고 자동 충전이 꺼져 있는지 ChatGPT **설정 → 사용량**에서 확인한다. [Codex 플랜·모델·사용량](https://help.openai.com/en/articles/11369540-using-codex-with-your-chatgpt-plan), [모델별 플랜 접근](https://help.openai.com/en/articles/20001354-gpt-6-and-other-models-in-chatgpt), [크레딧과 자동 충전](https://help.openai.com/en/articles/12642688-using-credits-for-flexible-usage-in-chatgpt-personal-plans)
+## 과금 범위
 
-### Claude Code
+월 구독에 포함된 사용량과 별도 구매하는 추가 사용 크레딧은 다르다. 스킬은 구매·충전·업그레이드·결제 설정 변경을 하지 않는다. CLI 계정에 이미 추가 사용이나 크레딧 차감이 켜져 있으면 포함 한도 뒤 정상 응답하면서 크레딧이 사용될 수 있다. 오류가 왔을 때 중단하는 래퍼만으로 추가 과금이 불가능하다고 보장하지 않는다.
+`billing: unconfirmed`는 이 한계의 기록이며 별도 사용자 승인 요청이나 모델 실행 차단이 아니다. 과금 차단 확인을 반복 요구하지 않는다. 기존 `--included-only` 옵션은 호환용으로만 남기며 일반 명령에서 사용하지 않는다.
 
-Claude Code는 Free 플랜에 포함되지 않는다. Claude Free 계정은 이 CLI를 무료 모델로 대체할 수 없으므로 이 제공자를 건너뛴다. Pro/Max 등 Claude Code가 포함된 플랜에서는 `/usage`로 포함 한도를 확인하고, `/usage-credits`에서 추가 사용이 꺼졌는지 확인한다. 사용 한도 오류가 나면 다른 모델·API·추가 크레딧으로 우회하지 않는다. [Claude 요금제](https://claude.com/pricing), [Claude Code 사용량](https://support.claude.com/en/articles/14552983-models-usage-and-limits-in-claude-code)
+## Antigravity 자격 증명 접근 오류
 
-### Antigravity CLI (`agy`)
+Windows 제한 셸에서 `agy models`가 `Failed to load stored token from keyring, falling back to file: Access is denied`를 출력했다. 같은 실행에서 로그·crash 파일 쓰기도 거부됐다. 이는 모델 한도 소진이 아니라 프로세스가 OS 자격 증명 저장소와 사용자 경로에 접근하지 못한 환경 문제다.
+같은 PC의 허용된 일반 사용자 셸에서는 앞서 모델 목록과 실제 Gemini 답변이 성공했다. 따라서 제한 셸의 일반적인 `not logged into Antigravity` 메시지만으로 계정이 로그아웃됐다고 판단하지 않는다. 사용자가 비활성화한 제공자는 진단·로그인 명령도 실행하지 않는다.
+호스트의 권한 승인·네트워크 제한은 스킬의 과금 확인과 별개다. 스킬이 호스트 승인 정책을 끄거나 토큰 복사·HOME 변경으로 격리를 우회하지 않는다.
 
-무료 계정에도 Gemini 3.8 Flash baseline quota가 제공된다. 기본 모델 `gemini-3.8-flash-medium`은 무료 요금제에서도 사용할 수 있으므로 기본 설정에는 별도 fallback을 두지 않는다. 다른 기본 모델을 선택한 경우 무료 fallback이 필요하면 `freeFallbackModel`을 `gemini-3.8-flash-medium`으로 지정한다. `agy -p /usage`에서 요청 모델별 baseline quota를 확인한다. CLI의 추가 크레딧 사용은 `agy -p /config`에서 `useG1Credits=false`인지 확인한다. CLI 문서상 해당 키의 기본값도 `false`다. 키가 없으면 문서화된 기본값을 적용하지만, `true`나 알 수 없는 값이면 차단한다. 앱의 **AI Credit Overages**를 확인하는 경우에도 `Never`를 사용하며, 앱 설정을 CLI 설정 확인의 대체로 삼지 않는다. `/credits`의 `no credits info found`는 잔액 0이나 과금 차단의 증거가 아니다. [Antigravity 요금제·초과 사용](https://www.antigravity.google/docs/plans), [요금제별 모델 접근](https://www.antigravity.google/docs/models/), [CLI 설정과 크레딧](https://www.antigravity.google/docs/cli/credits/), [CLI `/usage`](https://www.antigravity.google/docs/cli/commands/usage)
+## 참고한 CLI 래퍼
 
-## 실행 판단
+- [yogirk/agent-council 어댑터](https://github.com/yogirk/agent-council/blob/main/src/adapters.ts): CLI 실행과 실제 인증·요청 제한·실행 오류 분류. 별도 시험 질문을 보내는 preflight는 이 스킬에서 채택하지 않는다.
+- [CodeMoot](https://github.com/katarmal-ram/codemoot#how-it-works): Codex CLI의 기존 구독을 이용하는 호출 구조. 구독 사용이 추가 과금 불가능을 뜻하는 것은 아니다.
+- [OpenAI Codex Claude Code 플러그인](https://github.com/openai/codex-plugin-cc): 기존 CLI와 로그인 재사용, 미로그인일 때 로그인 안내.
 
-1. 각 CLI가 기존 계정으로 로그인됐는지 먼저 검사한다. 계정 확인은 저장소와 무관하게 사용자 계정을 조회한다.
-2. 사용량을 확인할 수 있으면 위의 CLI 명령으로 확인한다. 사용량 화면을 열 수 없는 경우에도 추가 과금 경로를 끈 것을 확인했다면 요청은 시도할 수 있다.
-3. 추가 사용·크레딧·자동 충전이 꺼진 제공자만 `--included-only codex,claude`처럼 지정한다. 확인되지 않은 제공자는 빼고, 실행기는 그 제공자의 모델 CLI를 호출하지 않는다.
-4. `--included-only` 확인이 있을 때만 지정 모델 오류·한도 소진 후 명시된 무료·포함 `freeFallbackModel`을 한 번 시도한다. 대체도 실패하거나 소진되면 `quota_exhausted` 등 실제 사유를 기록하고 중단한다. 임의 모델·다른 계정·결제 경로로 전환하지 않는다.
-
-사용량 확인값과 계정 정보를 실행 기록에 저장하지 않는다. 로그인 실패 시 Codex는 `codex login`, Claude Code는 `claude` 후 `/login`, Antigravity CLI는 `agy`를 실행해 공식 로그인 절차를 마친다.
+공식 근거: [OpenAI 포함 한도와 크레딧](https://learn.chatgpt.com/docs/pricing#what-are-tokens-and-credits), [Claude 추가 크레딧과 구독](https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans). 로컬 CLI 도움말과 [Codex 설정 참조](https://learn.chatgpt.com/docs/config-file/config-reference)에서 요청별 추가 크레딧 사용 금지 옵션은 확인되지 않았다. 없는 옵션을 만들어 과금 차단을 보장하지 않는다. `--max-budget-usd`나 구매 명령 숨기기를 구독 추가 크레딧 차단과 동일시하지 않는다.

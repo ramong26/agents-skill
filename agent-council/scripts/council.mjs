@@ -43,9 +43,9 @@ const cancel = () => abort.abort();
 process.on('SIGINT', cancel); process.on('SIGTERM', cancel);
 try {
   if (process.argv.length === 3 && ['--help', '-h'].includes(process.argv[2])) {
-    console.log('Usage: node council.mjs doctor [--config FILE] [--included-only codex,claude,gemini]\n' +
-      '  draft --request FILE --runs-dir DIR [--config FILE] [--included-only codex,claude,gemini]\n' +
-      '  review --run DIR --request FILE [--included-only codex,claude,gemini]\n  collect --run DIR\n' +
+    console.log('Usage: node council.mjs doctor [--config FILE]\n' +
+      '  draft --request FILE --runs-dir DIR [--config FILE]\n' +
+      '  review --run DIR --request FILE\n  collect --run DIR\n' +
       '  finalize --run DIR --verification FILE --final FILE');
   } else {
     if (process.env.AGENT_COUNCIL_ACTIVE) throw failure('recursive_run');

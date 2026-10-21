@@ -36,9 +36,11 @@ test('all three drafts receive the same original input without caller analysis o
     },
     parseResult: ({ model }) => ({ status: 'success', answer: `peer-answer-${id}`, actualModel: model }),
   }]));
+  const config = await loadConfig();
+  config.providers.gemini.enabled = true;
   const result = await runDraft({
     request: { ...supplied, analysis: 'caller-analysis-do-not-forward', recommendation: 'caller-recommendation' },
-    runsDir: root, config: await loadConfig(), adapters, environment: {}, includedOnly: ids,
+    runsDir: root, config, adapters, environment: {},
     runProcess: async () => ({ exitCode: 0, stdout: '', stderr: '' }),
   });
   assert.equal(result.providers.filter(item => item.status === 'success').length, 3);
