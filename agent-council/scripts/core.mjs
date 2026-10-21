@@ -2,7 +2,7 @@ import { mkdir, writeFile, open } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { runProcess as execute } from './process.mjs';
-import { ids, failure, createRun, redact, writeJson, collect, readJson, withRunLock } from './records.mjs';
+import { ids, failure, createRun, redact, writeJson, collect, readJson, withRunLock, maxFinalDocumentBytes } from './records.mjs';
 import { loadConfig, validateConfig, validateRequest, draftPrompt } from './settings.mjs';
 export { collect, loadConfig, validateConfig };
 
@@ -247,8 +247,8 @@ async function finalizeUnlocked({ runDir, verification, final, environment = pro
   checkRecursion(environment);
   const status = await readJson(join(runDir, 'status.json'));
   if (!['draft_complete', 'review_complete', 'cancelled'].includes(status.phase)) throw failure('invalid_phase');
-  for (const text of [verification, final]) {
-    if (typeof text !== 'string' || !text.trim() || Buffer.byteLength(text) > 1024 * 1024) throw failure('invalid_document');
+  for (const [text, limit] of [[verification, 1024 * 1024], [final, maxFinalDocumentBytes]]) {
+    if (typeof text !== 'string' || !text.trim() || Buffer.byteLength(text) > limit) throw failure('invalid_document');
   }
   await writeFile(join(runDir, 'verification.md'), redact(verification, environment), { mode: 0o600 });
   await writeFile(join(runDir, 'final.md'), redact(final, environment), { mode: 0o600 });

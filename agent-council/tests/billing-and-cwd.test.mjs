@@ -71,7 +71,7 @@ test('Claude Free login is confirmed but Claude Code model calls are blocked', a
   const home = await temporaryDirectory(t);
   const binDir = join(home, 'bin');
   await mkdir(binDir);
-  await writeFile(join(binDir, 'claude.exe'), 'mock');
+  await writeFile(join(binDir, process.platform === 'win32' ? 'claude.exe' : 'claude'), 'mock');
   const result = await claudePreflight({
     includedOnly: true,
     env: { USERPROFILE: home, PATH: binDir },
@@ -286,7 +286,7 @@ test('Antigravity accepts its documented default or explicit off personal-credit
   const binDir = join(home, 'bin');
   await mkdir(configDir, { recursive: true });
   await mkdir(binDir);
-  await writeFile(join(binDir, 'agy.exe'), 'mock');
+  await writeFile(join(binDir, process.platform === 'win32' ? 'agy.exe' : 'agy'), 'mock');
   const calls = [];
   const model = 'gemini-3.8-flash-medium';
 
@@ -316,7 +316,7 @@ test('keyring denial preserves an unconfirmed login and does not ask for login',
   const home = await temporaryDirectory(t);
   const binDir = join(home, 'bin');
   await mkdir(binDir);
-  await writeFile(join(binDir, 'agy.exe'), 'mock');
+  await writeFile(join(binDir, process.platform === 'win32' ? 'agy.exe' : 'agy'), 'mock');
   const config = await loadConfig();
   config.providers.codex.enabled = false;
   config.providers.claude.enabled = false;

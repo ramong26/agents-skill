@@ -1,6 +1,6 @@
 import { readFile, stat } from 'node:fs/promises';
 import { runDraft, runReview, collect, finalize, doctor, loadConfig } from './core.mjs';
-import { failure } from './records.mjs';
+import { failure, maxFinalDocumentBytes } from './records.mjs';
 
 const commands = {
   doctor: { required: [], optional: ['config', 'included-only'] },
@@ -9,8 +9,8 @@ const commands = {
   collect: { required: ['run'], optional: [] },
   finalize: { required: ['run', 'verification', 'final'], optional: [] },
 };
-async function textFile(path) {
-  if ((await stat(path)).size > 1024 * 1024) throw failure('input_too_large');
+async function textFile(path, maxBytes = 1024 * 1024) {
+  if ((await stat(path)).size > maxBytes) throw failure('input_too_large');
   return readFile(path, 'utf8');
 }
 async function jsonFile(path) {
@@ -58,7 +58,7 @@ try {
     if (command === 'review') result = await runReview({ ...shared, includedOnly: o.includedOnly,
       runDir: o.run, request: await jsonFile(o.request) });
     if (command === 'collect') result = await collect(o.run);
-    if (command === 'finalize') result = await finalize({ runDir: o.run, verification: await textFile(o.verification), final: await textFile(o.final) });
+    if (command === 'finalize') result = await finalize({ runDir: o.run, verification: await textFile(o.verification), final: await textFile(o.final, maxFinalDocumentBytes) });
     console.log(JSON.stringify(result, null, 2));
     if (abort.signal.aborted) process.exitCode = 130;
   }
