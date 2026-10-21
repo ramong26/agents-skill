@@ -69,7 +69,6 @@ function isolationAllowed(settings) {
 
 // AGY account auth uses the OS keyring; the token itself is never read here.
 export async function preflight(options) {
-  if (options.includedOnly !== true) return billingDecision(null, null);
   const effort = options.config?.providers?.gemini?.effort;
   if (effort && !["low", "medium", "high"].includes(effort))
     return { ok: false, code: "unsupported_cli" };
@@ -86,7 +85,12 @@ export async function preflight(options) {
   } catch {
     return { ok: false, code: "isolation_unconfirmed" };
   }
-  if (settings.useG1Credits !== false) return billingDecision(null, null);
+  // Current Antigravity CLI settings document false as the default for this option.
+  if (
+    settings.useG1Credits !== undefined &&
+    settings.useG1Credits !== false
+  )
+    return billingDecision(null, null);
   if (
     settings.modelProvider !== undefined &&
     settings.modelProvider !== null &&
@@ -131,7 +135,11 @@ export async function preflight(options) {
     };
 
   // The models command confirms keyring-backed account access without generating a response.
-  return billingDecision(inspected.cliVersion, "existing_login", "included_only");
+  return billingDecision(
+    inspected.cliVersion,
+    "existing_login",
+    options.includedOnly === true ? "included_only" : "unconfirmed",
+  );
 }
 
 // AGY requires stream-json on both sides; stdin carries one explicit user event.

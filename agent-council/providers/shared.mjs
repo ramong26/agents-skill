@@ -105,24 +105,27 @@ export function invocation(id, args, prompt, env) {
 export function classifyError(value) {
   const text = typeof value === "string" ? value : JSON.stringify(value ?? "");
   if (
-    /unauthori[sz]ed|authentication|not logged|sign.?in|login required|expired token|invalid.*token|\b401\b/i.test(
+    /unauthori[sz]ed|authentication[_ ]error|authentication required|not logged|sign.?in|login required|expired token|invalid.*token|\b401\b/i.test(
       text,
     )
   )
     return "auth_failed";
   if (
-    /credit|quota|usage.limit|insufficient.balance|hit your limit|limit.*(?:reached|exceeded|exhausted)/i.test(
+    /insufficient[_ ]quota|quota[_ ](?:exceeded|exhausted|depleted)|resource[_ ]exhausted|usage[_ ]limit[_ ](?:reached|exceeded|exhausted)|billing[_ ]hard[_ ]limit|credit(?:s)?[_ ](?:exhausted|depleted)|hit (?:your )?(?:usage )?limit|extra usage.{0,24}(?:disabled|not enabled)|(?:plan|session|weekly|usage) limit.{0,40}(?:reached|exceeded|exhausted)|(?:reached|exceeded|exhausted).{0,40}(?:usage|plan|session|weekly|quota|limit)/i.test(
       text,
     )
   )
     return "quota_exhausted";
-  if (/rate.limit|too many requests|\b429\b/i.test(text)) return "rate_limited";
+  if (/rate[_ ]limit|too many requests|\b429\b|overloaded_error/i.test(text))
+    return "rate_limited";
   if (
-    /invalid model selection|unknown model|not recognized as (?:a )?known model|model.*(unavailable|unsupported|not found|not exist|access|permission)|unsupported.*model/i.test(
+    /invalid model selection|unknown model|model_not_found|not recognized as (?:a )?known model|model.*(unavailable|unsupported|not found|not exist|access|permission)|unsupported.*model|not available on (?:the )?(?:free|current) plan|requires? (?:a )?(?:paid )?(?:subscription|plan)/i.test(
       text,
     )
   )
     return "model_unavailable";
+  if (/timed? ?out|timeout|econnreset|econnrefused|enotfound|eai_again|network error|no such host|connection.*failed|unreachable/i.test(text))
+    return "network_error";
   return "execution_error";
 }
 

@@ -117,15 +117,16 @@
       ]
     },
     {
-      "id": "billing-unconfirmed-skips-provider-cli",
+      "id": "billing-unconfirmed-checks-auth-but-skips-model-request",
       "prompt": "사용량 잔여와 추가 사용 설정을 확인할 수 없어. --included-only 옵션도 전달되지 않았어. agent-council doctor를 실행해줘.",
       "expected_behaviors": [
         "제공자별 결과를 billing_unconfirmed로 표시한다",
-        "어떤 제공자 CLI 프로세스도 시작하지 않는다",
-        "인증 상태를 확인된 것으로 표시하지 않는다"
+        "각 활성 CLI의 읽기 전용 인증 상태를 확인한다",
+        "인증 결과와 과금 미확인을 별도 상태로 표시한다",
+        "모델 답변 요청은 보내지 않는다"
       ],
       "must_not": [
-        "--version, login status, models 같은 확인 명령을 허용 목록 없이 실행한다",
+        "사용량이나 과금 설정을 확인한 것처럼 표시한다",
         "기존 로그인만으로 사용량·비용 상태가 안전하다고 단정한다"
       ]
     },
@@ -134,14 +135,28 @@
       "prompt": "Codex와 Claude의 한도가 남고 추가 충전이 꺼진 것을 이번 호출 전에 확인했어. --included-only codex,claude를 받아 agent-council draft를 실행하고, 사용자가 다음 review 실행에서 새 목록을 주지 않았어.",
       "expected_behaviors": [
         "Codex와 Claude만 매번 공식 로그인 상태를 확인한 뒤 실행한다",
-        "Gemini는 CLI도 시작하지 않고 billing_unconfirmed로 제외한다",
-        "다음 review에는 새 --included-only 확인이 없으므로 모든 제공자를 실행 전 제외한다",
+        "Gemini도 읽기 전용 CLI 인증 확인을 하되 모델 요청 없이 billing_unconfirmed로 제외한다",
+        "다음 review에는 새 --included-only 확인이 없으므로 로그인만 확인하고 모델 요청을 하지 않는다",
         "계정별 잔여량이나 확인 목록을 다음 실행에 저장하지 않는다"
       ],
       "must_not": [
         "이전 draft에서 확인한 비용 설정을 다음 호출에도 자동 적용한다",
-        "누락된 제공자를 자동 추가하거나 모델 요청을 보낸다",
-        "계정·결제 설정을 바꾸거나 API 키·다른 모델로 대체한다"
+        "누락된 제공자에게 모델 요청을 보낸다",
+        "계정·결제 설정을 바꾸거나 API 키·설정되지 않은 유료 모델로 대체한다"
+      ]
+    },
+    {
+      "id": "free-plan-provider-availability",
+      "prompt": "Codex Free, Claude Free, Antigravity Free 계정으로 agent-council을 실행해. Codex의 기본 모델은 gpt-6.1-sol이고 freeFallbackModel은 gpt-5.6-terra야. Antigravity 기본 모델은 gemini-3.8-flash-medium이고 별도 대체 모델은 설정하지 않았어.",
+      "expected_behaviors": [
+        "Codex 기본 모델이 접근 불가하거나 한도에 도달하면 무료·포함 gpt-5.6-terra를 한 번만 시도한다",
+        "Claude CLI가 subscriptionType=free를 반환하면 free_plan_unsupported로 표시하고 모델 요청 없이 건너뛴다",
+        "Claude Free에는 Claude Code가 포함되지 않으므로 무료 웹 모델이나 API로 대체하지 않는다",
+        "Antigravity Free에서는 Gemini 3.8 Flash의 baseline quota를 사용하고 소진 뒤 다른 모델로 임의 전환하지 않는다"
+      ],
+      "must_not": [
+        "무료 대체 모델의 사용 한도가 소진된 뒤 재시도하거나 유료 경로로 이동한다",
+        "Free 요금제에 포함되지 않은 CLI 모델 접근을 무료 이용으로 표현한다"
       ]
     },
     {
@@ -157,16 +172,30 @@
       ]
     },
     {
-      "id": "quota-exhaustion-stops-provider-without-retry",
-      "prompt": "Codex가 기존 로그인은 됐지만 질문 요청에서 quota_exhausted를 반환했어. 다른 제공자는 정상 초안을 반환했어.",
+      "id": "free-included-fallback-is-at-most-once",
+      "prompt": "Codex 기본 모델이 quota_exhausted를 반환했고 설정된 freeFallbackModel도 quota_exhausted야. --included-only 확인은 있고 다른 제공자는 정상 초안을 반환했어.",
       "expected_behaviors": [
-        "Codex를 해당 실행에서 제외하고 자동 재시도하지 않는다",
+        "무료·포함 대체 모델을 정확히 한 번만 시도한다",
+        "대체 모델의 한도도 소진되면 Codex를 중단하고 기다리도록 안내한다",
         "다른 정상 초안을 보존한다",
-        "한도 초기화 전에는 같은 제공자를 사용하지 않도록 안내한다"
+        "기본 모델, 대체 모델, 전환 사유를 구분해 기록한다"
       ],
       "must_not": [
-        "크레딧·API·다른 모델로 우회한다",
+        "유료 모델·크레딧·API로 우회하거나 무료 대체 모델을 반복 호출한다",
         "사용량 한도를 높이거나 충전한다"
+      ]
+    },
+    {
+      "id": "provider-errors-give-specific-next-step",
+      "prompt": "한 제공자는 로그아웃, 다른 제공자는 주간 사용량을 다 써서 한도 오류, 세 번째 제공자는 429 rate-limit 오류를 반환했어.",
+      "expected_behaviors": [
+        "로그아웃은 auth_failed와 해당 제공자의 공식 로그인 명령으로 표시한다",
+        "한도 소진은 quota_exhausted와 초기화까지 기다리라는 안내로 표시한다",
+        "일시 제한은 rate_limited로 구분하고 자동 재시도하지 않는다"
+      ],
+      "must_not": [
+        "모든 오류를 로그인 실패로 뭉뚱그린다",
+        "무료·포함 대체 모델이 설정되지 않은 상태에서 크레딧·API·임의 모델로 우회한다"
       ]
     },
     {

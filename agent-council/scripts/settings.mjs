@@ -2,17 +2,19 @@ import { readJson, failure, ids, skillDir } from './records.mjs';
 import { join } from 'node:path';
 
 const fixedPolicy = { auth: 'existing_login_only', on_provider_failure: 'skip', api_fallback: false,
-  model_fallback: false, interactive_auth: false, purchase_or_topup: false };
+  interactive_auth: false, purchase_or_topup: false };
 export function validateConfig(config) {
   if (!config || typeof config !== 'object' || !config.providers || !config.execution) throw failure('invalid_config');
   if (Object.keys(config.providers).some(id => !ids.includes(id))) throw failure('invalid_config');
   for (const id of ids) {
     const p = config.providers[id];
     if (!p || typeof p.enabled !== 'boolean' || typeof p.model !== 'string' || !/^[\w./:-]{1,200}$/.test(p.model)
-      || (p.effort !== undefined && !['low', 'medium', 'high', 'xhigh', 'max', 'ultra', 'minimal', 'none'].includes(p.effort)))
+      || (p.effort !== undefined && !['low', 'medium', 'high', 'xhigh', 'max', 'ultra', 'minimal', 'none'].includes(p.effort))
+      || (p.freeFallbackModel !== undefined && (typeof p.freeFallbackModel !== 'string' || !/^[\w./:-]{1,200}$/.test(p.freeFallbackModel))))
       throw failure('invalid_config');
   }
   if (Object.entries(fixedPolicy).some(([key, value]) => config.policy?.[key] !== value)) throw failure('invalid_config');
+  if (![false, 'free_included_only'].includes(config.policy?.model_fallback)) throw failure('invalid_config');
   if (config.policy.on_unconfirmed_billing !== 'skip') throw failure('invalid_config');
   const e = config.execution;
   if (e.runner_retries !== 0 || e.max_review_rounds !== 1 ||

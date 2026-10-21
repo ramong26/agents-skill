@@ -12,7 +12,6 @@ export const id = "claude";
 
 // Claude CLI의 지원 옵션과 기존 OAuth 로그인을 확인하고 비용 정책에 따라 참여 여부를 판단한다.
 export async function preflight(options) {
-  if (options.includedOnly !== true) return billingDecision(null, null);
   const inspected = await inspectCli(id, options, [
     "--safe-mode",
     "--restricted",
@@ -47,8 +46,20 @@ export async function preflight(options) {
       code: "auth_policy_conflict",
       cliVersion: inspected.cliVersion,
     };
-  // A subscription identifier is not proof that extra usage credits are disabled.
-  return billingDecision(inspected.cliVersion, "existing_login", "included_only");
+  if (typeof auth.subscriptionType === "string" && auth.subscriptionType.toLowerCase() === "free")
+    return {
+      ok: false,
+      code: "free_plan_unsupported",
+      cliVersion: inspected.cliVersion,
+      auth: "existing_login",
+      billing: "unconfirmed",
+    };
+  // Authentication is reported even when the user has not confirmed included usage.
+  return billingDecision(
+    inspected.cliVersion,
+    "existing_login",
+    options.includedOnly === true ? "included_only" : "unconfirmed",
+  );
 }
 
 // 지정 모델·추론 강도를 설정하고 도구·MCP를 제한한 Claude 비대화형 실행 명령을 구성한다.

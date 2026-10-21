@@ -17,7 +17,7 @@ $agy = Join-Path $env:LOCALAPPDATA 'agy\bin\agy.exe'
 Test-Path -LiteralPath $agy
 ```
 
-로그인이 필요하면 `& $agy`를 실행하고 공식 브라우저 안내를 따른다. `AI Credit Overages`가 `Never`가 아니거나 `useG1Credits`가 `false`로 명시되지 않으면 CLI 검사를 실행하지 않는다.
+로그인이 필요하면 `& $agy`를 실행하고 공식 브라우저 안내를 따른다. `AI Credit Overages`가 `Never`가 아니거나 `useG1Credits`가 `true`·잘못된 값이면 실행을 허용하지 않는다. `useG1Credits`가 없으면 공식 문서에 정의된 기본값 `false`를 적용한다.
 이 스킬은 로그인·브라우저 인증을 시작하지 않으며 Gemini API key나 Application Default Credentials로 전환하지 않는다.
 기본 모델 ID는 gemini-3.8-flash-medium이다. 모델 문서에서 Free, Plus, Pro, Ultra, Enterprise에 제공되는 것으로 표시된 모델을 기본값으로 선택한다.
 
@@ -54,6 +54,6 @@ Node.js 22 이상으로 설치된 스킬 폴더의 `scripts/council.mjs`를 실�
 실행 기록은 [실행 규약](execution.md)에 따라 설치 폴더 밖의 개인 작업 위치에 둔다.
 설치된 파일을 수정해 실행별 질문·초안·설정 상태를 저장하지 않는다.
 
-실행할 때마다 [계정·비용 확인](account-checks.md)을 먼저 수행하고 한도와 초과 설정이 확인된 제공자만 `doctor`·`draft`·`review`의 `--included-only`에 명시한다. 목록이 없으면 CLI를 실행하지 않는다.
+실행할 때마다 [계정·비용 확인](account-checks.md)을 먼저 수행한다. 모든 활성 제공자의 로그인은 읽기 전용으로 검사한다. 한도·초과 설정을 확인한 제공자만 `doctor`·`draft`·`review`의 `--included-only`에 명시해 모델 요청을 허용한다. 목록에서 빠진 제공자는 로그인 검사만 하고 모델 요청은 보내지 않는다.
 이 스킬은 확인된 제공자의 기존 로그인 상태를 매 호출 검사한다. 인증 실패 시 Codex는 `codex login`, Claude Code는 `claude`를 실행한 뒤 `/login`, Antigravity CLI는 `agy`를 실행해 공식 로그인 안내를 따른다. 자동 인증은 시작하지 않는다.
 다른 저장소에서 실행해도 인증 사전 점검은 호출 저장소 CWD에서 진행하고, 실제 모델 요청은 전용 임시 폴더에서 실행한다. 스킬 발견·사전 점검 통과는 실제 모델 접근·잔여 한도·추가 과금 없음의 보증이 아니다.
