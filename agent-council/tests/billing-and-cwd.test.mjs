@@ -54,6 +54,7 @@ test('legacy allow_existing_login policy is rejected', async () => {
 test('provider errors distinguish login, exhausted quota, throttling, model, and network failures', () => {
   const cases = [
     ['You are not logged into Antigravity', 'auth_failed'],
+    ['You are not logged into Antigravity.\nFailed to load stored token from keyring, falling back to file: Access is denied.', 'credential_store_unavailable'],
     ['usage_limit_reached: you have reached your weekly plan limit', 'quota_exhausted'],
     ["You've reached your usage limit", 'quota_exhausted'],
     ['Extra usage is disabled after reaching your plan limit', 'quota_exhausted'],
@@ -309,4 +310,28 @@ test('Antigravity accepts its documented default or explicit off personal-credit
     assert.equal(result.billing, 'included_only');
   }
   assert.deepEqual(calls.map(args => args[0]), ['--version', '--help', 'models', '--version', '--help', 'models']);
+});
+
+test('keyring denial preserves an unconfirmed login and does not ask for login', async t => {
+  const home = await temporaryDirectory(t);
+  const binDir = join(home, 'bin');
+  await mkdir(binDir);
+  await writeFile(join(binDir, 'agy.exe'), 'mock');
+  const config = await loadConfig();
+  config.providers.codex.enabled = false;
+  config.providers.claude.enabled = false;
+  const result = await doctor({
+    config, adapters: { gemini: { preflight: geminiPreflight } },
+    environment: { USERPROFILE: home, PATH: binDir }, cwd: home,
+    runProcess: async ({ args }) => {
+      if (args[0] === '--version') return { exitCode: 0, stdout: '1.4.4', stderr: '' };
+      if (args[0] === '--help') return { exitCode: 0, stdout: '--input-format --output-format --model --sandbox', stderr: '' };
+      return { exitCode: 1, stdout: '', stderr: 'You are not logged into Antigravity.\nFailed to load stored token from keyring: Access is denied.' };
+    },
+  });
+  const gemini = result.providers.find(item => item.provider === 'gemini');
+  assert.equal(gemini.code, 'credential_store_unavailable');
+  assert.equal(gemini.auth, 'unconfirmed');
+  assert.equal(gemini.loginHint, null);
+  assert.match(gemini.actionHint, /일반 사용자 터미널/);
 });

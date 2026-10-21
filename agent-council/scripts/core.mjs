@@ -19,11 +19,12 @@ const loginHints = {
 const usageHints = {
   codex: 'codex를 실행한 뒤 /status를 확인하세요. 크레딧 잔액 0, 자동 충전 꺼짐도 확인하세요.',
   claude: 'claude를 실행한 뒤 /usage와 /usage-credits를 확인하세요. 추가 사용이 꺼져 있어야 합니다.',
-  gemini: 'agy -p /usage와 agy -p /credits를 확인하세요. 사용 크레딧과 AI Credit Overages는 꺼져 있어야 합니다.',
+  gemini: 'agy -p /usage와 agy -p /credits를 확인하세요. agy -p /config의 useG1Credits는 false여야 합니다. 크레딧 정보 없음은 잔액 0을 뜻하지 않습니다.',
 };
 const actionHints = {
   auth_failed: '로그인이 필요합니다. 안내된 loginHint 명령으로 해당 CLI의 공식 로그인을 마친 뒤 다시 실행하세요.',
   auth_unconfirmed: 'CLI 로그인 상태를 확인하지 못했습니다. 안내된 loginHint 명령으로 상태를 확인하세요. 인증을 우회하지 않습니다.',
+  credential_store_unavailable: '현재 실행 환경에서 OS 자격 증명 저장소에 접근하지 못했습니다. 일반 사용자 터미널에서 같은 doctor 명령으로 확인하세요. 이 결과만으로 로그아웃을 판단하거나 재로그인하지 마세요.',
   free_plan_unsupported: 'Claude Free에는 Claude Code가 포함되지 않습니다. Claude 웹 무료 모델이나 API로 바꾸지 않고 이 제공자는 건너뜁니다.',
   quota_exhausted: '무료·포함 사용량 한도에 도달했습니다. 추가 과금이나 임의 모델 전환 없이 한도가 초기화될 때까지 기다리세요.',
   rate_limited: '서비스가 요청 속도를 제한했습니다. 자동 재시도하지 않았습니다. 응답에 초기화 시간이 있으면 그 뒤 다시 실행하세요.',

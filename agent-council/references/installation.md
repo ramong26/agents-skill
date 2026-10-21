@@ -17,7 +17,7 @@ $agy = Join-Path $env:LOCALAPPDATA 'agy\bin\agy.exe'
 Test-Path -LiteralPath $agy
 ```
 
-로그인이 필요하면 `& $agy`를 실행하고 공식 브라우저 안내를 따른다. `AI Credit Overages`가 `Never`가 아니거나 `useG1Credits`가 `true`·잘못된 값이면 실행을 허용하지 않는다. `useG1Credits`가 없으면 공식 문서에 정의된 기본값 `false`를 적용한다.
+로그인이 필요하면 `& $agy`를 실행하고 공식 브라우저 안내를 따른다. `agy -p /config`에서 CLI의 `useG1Credits=false`를 확인한다. `true`·잘못된 값이면 실행을 허용하지 않으며, 키가 없으면 공식 문서에 정의된 기본값 `false`를 적용한다. 앱의 초과 사용 설정을 별도로 확인한다면 `AI Credit Overages=Never`를 사용한다.
 이 스킬은 로그인·브라우저 인증을 시작하지 않으며 Gemini API key나 Application Default Credentials로 전환하지 않는다.
 기본 모델 ID는 gemini-3.8-flash-medium이다. 모델 문서에서 Free, Plus, Pro, Ultra, Enterprise에 제공되는 것으로 표시된 모델을 기본값으로 선택한다.
 

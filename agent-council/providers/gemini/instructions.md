@@ -9,8 +9,9 @@
 - Google 참여자는 기존 provider 키 gemini를 유지하지만 Antigravity CLI의 agy 실행 파일을 사용한다.
 - 참여 모델은 config.json의 명시적 ID를 사용한다. 지정 모델 접근 불가·한도 초과 때 `freeFallbackModel`이 별도로 설정된 경우에만 해당 무료·포함 모델을 한 번 실행한다. 그 외 모델로 자동 대체하지 않는다.
 - 기본 Google 인증은 Antigravity CLI가 사용하는 OS 계정 keyring 경로다. API 키 인증과 ADC 인증을 허용하지 않는다.
-- Gemini 3.8 Flash는 무료 계정에 baseline quota가 있다. AI Credit Overages가 `Never`인지 확인한 뒤 `--included-only gemini`로 승인한다. `useG1Credits`가 `true`이거나 잘못된 값이면 막고, 키가 없을 때는 공식 문서의 기본값 `false`를 적용한다. 남은 quota를 읽지 못해도 무료 경로가 확인됐으면 한 번 요청할 수 있다.
+- Gemini 3.8 Flash는 무료 계정에 baseline quota가 있다. `agy -p /config`에서 `useG1Credits=false`를 확인한 뒤 `--included-only gemini`로 승인한다. 값이 `true`이거나 잘못됐으면 막고, 키가 없을 때는 공식 문서의 기본값 `false`를 적용한다. 앱의 초과 사용 설정과 CLI의 크레딧 설정은 구분한다. 남은 quota를 읽지 못해도 CLI의 무료 경로가 확인됐으면 한 번 요청할 수 있다.
 - 사전 점검은 keyring 토큰을 직접 읽지 않는다. `agy models`로 CLI의 기존 계정 접근과 설정 모델의 목록 포함 여부를 확인하며 모델 응답 생성이나 무료 이용을 보증하지 않는다.
+- keyring 접근 거부와 sign-in 오류가 함께 나오면 로그인 미확인으로 처리한다. 허용된 일반 사용자 셸에서 `doctor`를 확인하며 재로그인·토큰 복사·HOME 변경을 해결책으로 실행하지 않는다.
 - AGY 작업은 실행별 중립 작업 폴더와 터미널 샌드박스를 사용한다. 외부 접근이나 자동 도구 허용이 가능한 글로벌 설정이면 참여자를 제외한다.
 - 글로벌 GEMINI.md, Skills, plugins, MCP 설정이 AGY 응답에 영향을 줄 수 있다. 추가 지침이 동일하다고 주장하지 않는다.
 - Gemini의 서비스 기본 추론 설정을 사용하며 다른 서비스의 medium을 억지로 적용하지 않는다.

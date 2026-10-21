@@ -114,12 +114,15 @@ export async function preflight(options) {
       code: modelCheck.code,
       cliVersion: inspected.cliVersion,
     };
-  if (modelCheck.exitCode !== 0)
+  if (modelCheck.exitCode !== 0) {
+    const code = classifyError(modelOutput);
     return {
       ok: false,
-      code: classifyError(modelOutput),
+      code,
+      auth: code === "credential_store_unavailable" ? "unconfirmed" : null,
       cliVersion: inspected.cliVersion,
     };
+  }
   if (
     /please sign in|not logged into antigravity|authentication required/i.test(
       modelOutput,

@@ -10,9 +10,11 @@
 |---|---|---|
 | Codex | `codex login status` | `codex` 실행 후 `/status` |
 | Claude Code | `claude auth status` | `claude` 실행 후 `/usage`; `/usage-credits`에서 추가 사용이 꺼졌는지 확인 |
-| Antigravity | `agy models` | `agy -p /usage`; 크레딧은 `agy -p /credits` |
+| Antigravity | `agy models` | `agy -p /usage`; 크레딧은 `agy -p /credits`, 추가 사용 설정은 `agy -p /config` |
 
 Codex와 Claude의 사용량 명령은 대화형 CLI 안에서 실행한다. Antigravity의 `-p /usage`는 CLI가 처리하는 읽기 전용 사용량 명령이다. 로그인 안내가 나오면 스킬이 브라우저 로그인을 대신하거나 인증 코드를 수집하지 않는다.
+
+Windows의 제한된 셸은 OS keyring을 읽지 못해 기존 로그인에도 일반적인 sign-in 오류를 출력할 수 있다. 로그에 keyring 접근 거부가 함께 있으면 `credential_store_unavailable`이며 로그인 상태는 미확인이다. 같은 저장소에서 일반 사용자 권한의 허용된 셸로 읽기 전용 `doctor`를 실행해 확인한다. 일반 셸에서 성공하면 기존 로그인을 유지한다. HOME·인증 환경변수 변경이나 토큰 복사로 우회하지 않는다. 모델 요청은 자동으로 재실행하지 않는다.
 
 ## 제공자별 과금 차단
 
@@ -26,7 +28,7 @@ Claude Code는 Free 플랜에 포함되지 않는다. Claude Free 계정은 이 
 
 ### Antigravity CLI (`agy`)
 
-무료 계정에도 Gemini 3.8 Flash baseline quota가 제공된다. 기본 모델 `gemini-3.8-flash-medium`은 무료 요금제에서도 사용할 수 있으므로 기본 설정에는 별도 fallback을 두지 않는다. 다른 기본 모델을 선택한 경우 무료 fallback이 필요하면 `freeFallbackModel`을 `gemini-3.8-flash-medium`으로 지정한다. `agy -p /usage`에서 요청 모델별 baseline quota를 확인한다. Google AI Pro/Ultra의 **AI Credit Overages**는 `Never`여야 하고 `settings.json`의 `useG1Credits`는 `false`여야 한다. CLI 문서상 해당 키의 기본값도 `false`다. 키가 없으면 문서화된 기본값을 적용하지만, `true`나 알 수 없는 값이면 차단한다. [Antigravity 요금제·초과 사용](https://www.antigravity.google/docs/plans), [요금제별 모델 접근](https://www.antigravity.google/docs/models/), [CLI 설정과 크레딧](https://www.antigravity.google/docs/cli/credits/), [CLI `/usage`](https://www.antigravity.google/docs/cli/commands/usage)
+무료 계정에도 Gemini 3.8 Flash baseline quota가 제공된다. 기본 모델 `gemini-3.8-flash-medium`은 무료 요금제에서도 사용할 수 있으므로 기본 설정에는 별도 fallback을 두지 않는다. 다른 기본 모델을 선택한 경우 무료 fallback이 필요하면 `freeFallbackModel`을 `gemini-3.8-flash-medium`으로 지정한다. `agy -p /usage`에서 요청 모델별 baseline quota를 확인한다. CLI의 추가 크레딧 사용은 `agy -p /config`에서 `useG1Credits=false`인지 확인한다. CLI 문서상 해당 키의 기본값도 `false`다. 키가 없으면 문서화된 기본값을 적용하지만, `true`나 알 수 없는 값이면 차단한다. 앱의 **AI Credit Overages**를 확인하는 경우에도 `Never`를 사용하며, 앱 설정을 CLI 설정 확인의 대체로 삼지 않는다. `/credits`의 `no credits info found`는 잔액 0이나 과금 차단의 증거가 아니다. [Antigravity 요금제·초과 사용](https://www.antigravity.google/docs/plans), [요금제별 모델 접근](https://www.antigravity.google/docs/models/), [CLI 설정과 크레딧](https://www.antigravity.google/docs/cli/credits/), [CLI `/usage`](https://www.antigravity.google/docs/cli/commands/usage)
 
 ## 실행 판단
 

@@ -104,6 +104,9 @@ export function invocation(id, args, prompt, env) {
 
 export function classifyError(value) {
   const text = typeof value === "string" ? value : JSON.stringify(value ?? "");
+  // A sandbox can hide an existing OS login and also print a generic sign-in error.
+  if (/\b(?:keyring|credential (?:store|manager)|token storage|dpapi)\b[^\r\n]{0,240}(?:access is denied|access denied|permission denied|not permitted|failed to decrypt)/i.test(text))
+    return "credential_store_unavailable";
   if (
     /unauthori[sz]ed|authentication[_ ]error|authentication required|not logged|sign.?in|login required|expired token|invalid.*token|\b401\b/i.test(
       text,
