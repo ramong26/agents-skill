@@ -5,6 +5,22 @@
 참여 CLI가 독립 답변만 만들 때는 이 스킬의 설치가 필요하지 않다.
 총괄로 이 스킬을 호출할 CLI에만 등록하면 된다.
 
+## Google 참여자 CLI
+
+Google 모델 참여자는 Antigravity CLI의 agy 실행 파일을 사용한다. 저장된 설정·기록과 호환되도록 내부 provider ID는 gemini로 유지한다.
+참여 CLI를 사용하려면 Antigravity CLI를 설치하고 공식 Google 계정으로 로그인해야 한다. headless 실행은 OS keyring의 저장된 credentials를 사용한다.
+Windows의 기본 실행 파일 위치는 `%LOCALAPPDATA%\agy\bin\agy.exe`다. PATH에 없더라도 이 위치를 자동으로 확인한다.
+PowerShell에서 Antigravity 실행 파일 경로와 `agy models`를 확인한다. 이 명령은 기존 OS 로그인을 점검하며 새 로그인을 요구하거나 모델 질문을 보내지 않는다.
+
+```powershell
+$agy = Join-Path $env:LOCALAPPDATA 'agy\bin\agy.exe'
+Test-Path -LiteralPath $agy
+```
+
+실제 로그아웃일 때만 `& $agy`를 실행하고 공식 브라우저 안내를 따른다. 어댑터는 로컬 `useG1Credits`가 `true`·잘못된 값이면 해당 제공자를 제외하고, 키가 없으면 공식 기본값 `false`를 적용한다. 사용자에게 매 실행마다 `/config`·과금 화면 확인을 요구하지 않는다.
+이 스킬은 로그인·브라우저 인증을 시작하지 않으며 Gemini API key나 Application Default Credentials로 전환하지 않는다.
+기본 모델 ID는 gemini-3.8-flash-medium이다. 모델 문서에서 Free, Plus, Pro, Ultra, Enterprise에 제공되는 것으로 표시된 모델을 기본값으로 선택한다.
+
 ## 검색 위치
 
 다음은 사용자 범위의 로컬 등록 위치다. `~`는 사용자 홈이다.
@@ -13,10 +29,10 @@
 | --- | --- | --- |
 | Codex | `~/.agents/skills/agent-council/` | [공식 스킬 문서](https://learn.chatgpt.com/docs/build-skills) |
 | Claude Code | `~/.claude/skills/agent-council/` | [공식 스킬 문서](https://code.claude.com/docs/en/skills) |
-| Gemini CLI | `~/.gemini/skills/agent-council/` 또는 `~/.agents/skills/agent-council/` | [공식 스킬 문서](https://geminicli.com/docs/cli/skills/) |
+| Antigravity CLI (`agy`) | `~/.gemini/antigravity-cli/skills/agent-council/` 또는 workspace `.agents/skills/agent-council/` | [공식 스킬 문서](https://antigravity.google/docs/skills) |
 
 Codex·Claude Code는 로컬 스킬 폴더 링크를 지원한다.
-Gemini CLI는 공통 `.agents/skills` 경로와 스킬 연결 기능을 제공한다.
+Antigravity CLI는 workspace `.agents/skills`와 사용자 전역 스킬 경로를 지원한다.
 운영체제의 링크 권한과 설치된 CLI 버전에서 실제 발견되는지 확인한 뒤 사용한다.
 
 ## 등록·갱신 원칙
@@ -38,6 +54,6 @@ Node.js 22 이상으로 설치된 스킬 폴더의 `scripts/council.mjs`를 실�
 실행 기록은 [실행 규약](execution.md)에 따라 설치 폴더 밖의 개인 작업 위치에 둔다.
 설치된 파일을 수정해 실행별 질문·초안·설정 상태를 저장하지 않는다.
 
-CLI 버전·인증·기본 모델 접근 가능성은 `doctor`로 확인 가능한 범위부터 점검한다.
-기본 정책은 기존 공식 로그인이 확인된 CLI의 실행을 허용하며, 추가 과금 여부는 확인되지 않을 수 있다.
-스킬 발견·사전 점검 통과만으로 실제 모델 접근·무료 실행·추가 과금 없음을 보장하지 않는다.
+기존 CLI 로그인을 사용하며 추가 옵션 없이 실행한다. 사용량·과금 확인이나 허용 목록 입력을 매번 요청하지 않는다. 실제 인증·한도 오류가 오면 해당 제공자만 중단한다. [계정·오류 안내](account-checks.md)는 진단·과금 한계를 설명할 때 읽는다.
+이 스킬은 확인된 제공자의 기존 로그인 상태를 매 호출 검사한다. 인증 실패 시 Codex는 `codex login`, Claude Code는 `claude`를 실행한 뒤 `/login`, Antigravity CLI는 `agy`를 실행해 공식 로그인 안내를 따른다. 자동 인증은 시작하지 않는다.
+다른 저장소에서 실행해도 인증 사전 점검은 호출 저장소 CWD에서 진행하고, 실제 모델 요청은 전용 임시 폴더에서 실행한다. 스킬 발견·사전 점검 통과는 실제 모델 접근·잔여 한도·추가 과금 없음의 보증이 아니다.

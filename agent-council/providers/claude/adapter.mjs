@@ -1,5 +1,5 @@
 import {
-  billingDecision,
+  existingLoginDecision,
   classifyError,
   failure,
   inspectCli,
@@ -12,7 +12,7 @@ import {
 
 export const id = "claude";
 
-// Claude CLI의 지원 옵션과 기존 OAuth 로그인을 확인하고 비용 정책에 따라 참여 여부를 판단한다.
+// 기존 OAuth 로그인으로 바로 실행하고 실제 요청 오류를 처리한다.
 export async function preflight(options) {
   const inspected = await inspectCli(id, options, [
     "--safe-mode",
@@ -50,8 +50,19 @@ export async function preflight(options) {
       code: "auth_policy_conflict",
       cliVersion: inspected.cliVersion,
     };
-  // A subscription identifier is not proof that extra usage credits are disabled.
-  return billingDecision(options.config, inspected.cliVersion);
+  if (typeof auth.subscriptionType === "string" && auth.subscriptionType.toLowerCase() === "free")
+    return {
+      ok: false,
+      code: "free_plan_unsupported",
+      cliVersion: inspected.cliVersion,
+      auth: "existing_login",
+      billing: "unconfirmed",
+    };
+  return existingLoginDecision(
+    inspected.cliVersion,
+    "existing_login",
+    options.includedOnly === true ? "included_only" : "unconfirmed",
+  );
 }
 
 // 지정 모델·추론 강도를 설정하고 도구·MCP를 제한한 Claude 비대화형 실행 명령을 구성한다.
@@ -84,7 +95,7 @@ export function buildInvocation({ model, effort, prompt, env }) {
 
 // Claude 결과 JSON에서 최종 답변과 보고된 모델을 추출하고 오류·빈 답변·모델 불일치 결과를 제외한다.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
-  if (exitCode !== 0) return failure(classifyError(stderr || stdout));
+  if (exitCode !== 0) return failure(classifyError(stderr + "\n" + stdout));
   let events;
   try {
     events = parseEvents(stdout);

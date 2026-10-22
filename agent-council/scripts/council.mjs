@@ -1,16 +1,16 @@
 import { readFile, stat } from 'node:fs/promises';
 import { runDraft, runReview, collect, finalize, doctor, loadConfig } from './core.mjs';
-import { failure } from './records.mjs';
+import { failure, maxFinalDocumentBytes } from './records.mjs';
 
 const commands = {
-  doctor: { required: [], optional: ['config'] },
-  draft: { required: ['request', 'runs-dir'], optional: ['config'] },
-  review: { required: ['run', 'request'], optional: [] },
+  doctor: { required: [], optional: ['config', 'included-only'] },
+  draft: { required: ['request', 'runs-dir'], optional: ['config', 'included-only'] },
+  review: { required: ['run', 'request'], optional: ['included-only'] },
   collect: { required: ['run'], optional: [] },
   finalize: { required: ['run', 'verification', 'final'], optional: [] },
 };
-async function textFile(path) {
-  if ((await stat(path)).size > 1024 * 1024) throw failure('input_too_large');
+async function textFile(path, maxBytes = 1024 * 1024) {
+  if ((await stat(path)).size > maxBytes) throw failure('input_too_large');
   return readFile(path, 'utf8');
 }
 async function jsonFile(path) {
@@ -23,11 +23,18 @@ function parse(argv) {
   const { required, optional } = commands[command], options = {};
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i].startsWith('--') ? args[i].slice(2) : '';
-    if (![...required, ...optional].includes(key) || options[key] || !args[i + 1] || args[i + 1].startsWith('--'))
+    if (![...required, ...optional].includes(key) || Object.hasOwn(options, key) || !args[i + 1] || args[i + 1].startsWith('--'))
       throw failure('invalid_arguments');
     options[key] = args[i + 1];
   }
   if (required.some(key => !options[key])) throw failure('invalid_arguments');
+  if (options['included-only'] !== undefined) {
+    const providers = options['included-only'].split(',');
+    if (!providers.length || providers.some(id => !['codex', 'claude', 'gemini'].includes(id)) ||
+      new Set(providers).size !== providers.length) throw failure('invalid_arguments');
+    options.includedOnly = providers;
+    delete options['included-only'];
+  } else options.includedOnly = [];
   return { command, options };
 }
 
@@ -45,11 +52,13 @@ try {
     const { command, options: o } = parse(process.argv.slice(2));
     const shared = { signal: abort.signal, onProgress: event => process.stderr.write(JSON.stringify(event) + '\n') };
     let result;
-    if (command === 'doctor') result = await doctor({ ...shared, config: await loadConfig(o.config) });
-    if (command === 'draft') result = await runDraft({ ...shared, request: await jsonFile(o.request), runsDir: o['runs-dir'], config: await loadConfig(o.config) });
-    if (command === 'review') result = await runReview({ ...shared, runDir: o.run, request: await jsonFile(o.request) });
+    if (command === 'doctor') result = await doctor({ ...shared, includedOnly: o.includedOnly, config: await loadConfig(o.config) });
+    if (command === 'draft') result = await runDraft({ ...shared, includedOnly: o.includedOnly,
+      request: await jsonFile(o.request), runsDir: o['runs-dir'], config: await loadConfig(o.config) });
+    if (command === 'review') result = await runReview({ ...shared, includedOnly: o.includedOnly,
+      runDir: o.run, request: await jsonFile(o.request) });
     if (command === 'collect') result = await collect(o.run);
-    if (command === 'finalize') result = await finalize({ runDir: o.run, verification: await textFile(o.verification), final: await textFile(o.final) });
+    if (command === 'finalize') result = await finalize({ runDir: o.run, verification: await textFile(o.verification), final: await textFile(o.final, maxFinalDocumentBytes) });
     console.log(JSON.stringify(result, null, 2));
     if (abort.signal.aborted) process.exitCode = 130;
   }

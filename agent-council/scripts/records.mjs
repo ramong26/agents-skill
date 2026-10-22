@@ -5,6 +5,8 @@ import { randomUUID } from 'node:crypto';
 
 export const skillDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const ids = ['codex', 'claude', 'gemini'];
+// Six responses can total 12 MiB; leave room for synthesis and formatting.
+export const maxFinalDocumentBytes = 16 * 1024 * 1024;
 export const failure = (code, message = code) => Object.assign(new Error(message), { code });
 export async function readJson(path) {
   try { return JSON.parse(await readFile(path, 'utf8')); }

@@ -1,293 +1,231 @@
-import {
-  existsSync,
-  readFileSync,
-  statSync,
-  mkdirSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { join, dirname } from "node:path";
+import { join } from "node:path";
 import {
-  billingDecision,
+  existingLoginDecision,
   classifyError,
   failure,
   inspectCli,
   invocation,
   parseObject,
   reportedModel,
-  parseEvents,
   researchSummary,
 } from "../shared.mjs";
 
 export const id = "gemini";
 
-function globalDirectory(env) {
+function settingsPath(env) {
   return join(
-    env.GEMINI_CLI_HOME || env.USERPROFILE || env.HOME || homedir(),
+    env.USERPROFILE || env.HOME || homedir(),
     ".gemini",
+    "antigravity-cli",
+    "settings.json",
   );
 }
 
-function systemSettings(env, defaults = false) {
-  const systemPath =
-    env.GEMINI_CLI_SYSTEM_SETTINGS_PATH ||
-    (process.platform === "win32"
-      ? join(
-          env.ProgramData || "C:\\ProgramData",
-          "gemini-cli",
-          "settings.json",
-        )
-      : process.platform === "darwin"
-        ? "/Library/Application Support/GeminiCli/settings.json"
-        : "/etc/gemini-cli/settings.json");
-  const path = defaults
-    ? env.GEMINI_CLI_SYSTEM_DEFAULTS_PATH ||
-      join(dirname(systemPath), "system-defaults.json")
-    : systemPath;
+function readSettings(env) {
+  const path = settingsPath(env);
   if (!existsSync(path)) return {};
   return parseObject(readFileSync(path, "utf8"));
 }
 
 function isolationAllowed(settings) {
-  return (
-    (!settings.tools?.core ||
-      (Array.isArray(settings.tools.core) &&
-        settings.tools.core.every(name => ['google_web_search', 'web_fetch'].includes(name)))) &&
-    settings.hooksConfig?.enabled !== true &&
-    settings.skills?.enabled !== true &&
-    settings.admin?.mcp?.enabled !== true &&
-    settings.admin?.extensions?.enabled !== true &&
-    settings.advanced?.ignoreLocalEnv !== false &&
-    !settings.modelConfigs &&
-    settings.experimental?.dynamicModelConfiguration !== false
-  );
+  if (
+    settings.allowNonWorkspaceAccess !== undefined &&
+    settings.allowNonWorkspaceAccess !== false
+  )
+    return false;
+  if (
+    settings.toolPermission !== undefined &&
+    !["request-review", "strict"].includes(settings.toolPermission)
+  )
+    return false;
+  if (
+    settings.artifactReviewPolicy !== undefined &&
+    !["asks-for-review", "agent-decides"].includes(
+      settings.artifactReviewPolicy,
+    )
+  )
+    return false;
+
+  const permissions = settings.permissions;
+  if (permissions === undefined) return true;
+  if (
+    !permissions ||
+    typeof permissions !== "object" ||
+    Array.isArray(permissions)
+  )
+    return false;
+  for (const key of ["allow", "ask", "deny"]) {
+    const entries = permissions[key];
+    if (
+      entries !== undefined &&
+      (!Array.isArray(entries) ||
+        entries.some((entry) => typeof entry !== "string"))
+    )
+      return false;
+  }
+  return !permissions.allow?.length;
 }
 
-// Gemini CLI 버전, 기존 Google 로그인 설정과 캐시 존재, 상속 설정을 검사해 참여 여부를 판단한다.
+// AGY account auth uses the OS keyring; the token itself is never read here.
 export async function preflight(options) {
-  const inspected = await inspectCli(id, options, [
-    "--prompt",
-    "--model",
+  const effort = options.config?.providers?.gemini?.effort;
+  if (effort && !["low", "medium", "high"].includes(effort))
+    return { ok: false, code: "unsupported_cli" };
+  const requiredFlags = [
+    "--input-format",
     "--output-format",
-    "--approval-mode",
-    "--extensions",
-    "--skip-trust",
-    "--allowed-tools",
-  ]);
-  if (!inspected.ok) return inspected;
-  const [major, minor] = inspected.cliVersion.split(".").map(Number);
-  if (major === 0 && minor < 65)
-    return {
-      ok: false,
-      code: "unsupported_cli",
-      cliVersion: inspected.cliVersion,
-    };
-  const env = options.env || {};
-  const directory = globalDirectory(env);
-  let user;
+    "--model",
+    "--sandbox",
+  ];
+  if (effort) requiredFlags.push("--effort");
+  let settings;
   try {
-    if (
-      !existsSync(join(directory, "settings.json")) ||
-      !statSync(join(directory, "oauth_creds.json")).isFile()
-    )
-      return {
-        ok: false,
-        code: "auth_missing",
-        cliVersion: inspected.cliVersion,
-      };
-    user = parseObject(readFileSync(join(directory, "settings.json"), "utf8"));
+    settings = readSettings(options.env || {});
   } catch {
-    return {
-      ok: false,
-      code: "auth_missing",
-      cliVersion: inspected.cliVersion,
-    };
+    return { ok: false, code: "isolation_unconfirmed" };
   }
-  if (user.security?.auth?.selectedType !== "oauth-personal")
-    return {
-      ok: false,
-      code: "auth_policy_conflict",
-      cliVersion: inspected.cliVersion,
-    };
-  // Deep-merged aliases/overrides can rewrite an explicit model before fallback handling.
-  if (user.modelConfigs)
-    return {
-      ok: false,
-      code: "isolation_unconfirmed",
-      cliVersion: inspected.cliVersion,
-    };
-  let system;
-  try {
-    system = systemSettings(env);
-    if (systemSettings(env, true).modelConfigs)
-      return {
-        ok: false,
-        code: "isolation_unconfirmed",
-        cliVersion: inspected.cliVersion,
-      };
-  } catch {
-    return {
-      ok: false,
-      code: "isolation_unconfirmed",
-      cliVersion: inspected.cliVersion,
-    };
-  }
+  // Current Antigravity CLI settings document false as the default for this option.
   if (
-    system.security?.auth?.enforcedType &&
-    system.security.auth.enforcedType !== "oauth-personal"
+    settings.useG1Credits !== undefined &&
+    settings.useG1Credits !== false
+  )
+    return { ok: false, code: "credit_fallback_enabled", billing: "unconfirmed" };
+  if (
+    settings.modelProvider !== undefined &&
+    settings.modelProvider !== null &&
+    settings.modelProvider !== ""
   )
     return {
       ok: false,
       code: "auth_policy_conflict",
-      cliVersion: inspected.cliVersion,
     };
-  if (!isolationAllowed(system))
+  if (!isolationAllowed(settings))
+    return { ok: false, code: "isolation_unconfirmed" };
+
+  const inspected = await inspectCli(id, options, requiredFlags);
+  if (!inspected.ok) return inspected;
+
+  const modelCheck = await inspected.run(["models"], 30000);
+  const modelOutput = `${modelCheck.stdout ?? ""}\n${modelCheck.stderr ?? ""}`;
+  if (modelCheck.code)
     return {
       ok: false,
-      code: "isolation_unconfirmed",
+      code: modelCheck.code,
       cliVersion: inspected.cliVersion,
     };
-  // Presence is not token validity; NO_BROWSER + headless fails rather than authenticating.
-  return billingDecision(
-    options.config,
+  if (
+    modelCheck.exitCode !== 0 ||
+    /please sign in|not logged into antigravity|authentication required/i.test(modelOutput)
+  ) {
+    const code = classifyError(modelOutput);
+    return {
+      ok: false,
+      code,
+      auth: code === "credential_store_unavailable" ? "unconfirmed" : null,
+      cliVersion: inspected.cliVersion,
+    };
+  }
+  const model = options.config?.providers?.gemini?.model;
+  if (!model || !modelOutput.includes(model))
+    return {
+      ok: false,
+      code: "model_unavailable",
+      cliVersion: inspected.cliVersion,
+    };
+
+  // The models command confirms keyring-backed account access without generating a response.
+  return existingLoginDecision(
     inspected.cliVersion,
-    "existing_login_configured",
+    "existing_login",
+    options.includedOnly === true ? "included_only" : "unconfirmed",
   );
 }
 
-// 실행 전용 작업 폴더에 도구·모델 대체 제한 설정을 만들고 브라우저 인증을 막는 Gemini 명령을 구성한다.
-export function buildInvocation({ model, prompt, cwd, env }) {
-  const directory = join(cwd, ".gemini");
-  // Only the generated per-provider workspace is writable; never replace an existing file.
-  mkdirSync(directory, { recursive: true, mode: 0o700 });
-  const singleModel = [
-    {
-      model,
-      isLastResort: true,
-      maxAttempts: 1,
-      actions: {
-        terminal: "silent",
-        transient: "silent",
-        not_found: "silent",
-        unknown: "silent",
-      },
-      stateTransitions: {
-        terminal: "terminal",
-        transient: "terminal",
-        not_found: "terminal",
-        unknown: "terminal",
-      },
-    },
+// AGY requires stream-json on both sides; stdin carries one explicit user event.
+export function buildInvocation({ model, effort, prompt, env }) {
+  const args = [
+    "--input-format",
+    "stream-json",
+    "--output-format",
+    "stream-json",
+    "--model",
+    model,
+    "--sandbox",
   ];
-  writeFileSync(
-    join(directory, "settings.json"),
-    JSON.stringify({
-      tools: { core: ['google_web_search', 'web_fetch'] },
-      hooksConfig: { enabled: false },
-      skills: { enabled: false },
-      admin: { mcp: { enabled: false }, extensions: { enabled: false } },
-      security: {
-        auth: {
-          selectedType: "oauth-personal",
-          enforcedType: "oauth-personal",
-        },
-      },
-      context: { loadMemoryFromIncludeDirectories: false },
-      experimental: { dynamicModelConfiguration: true },
-      modelConfigs: {
-        modelChains: Object.fromEntries(
-          ["lite", "default", "preview", "auto-default", "auto-preview"].map(
-            (name) => [name, singleModel],
-          ),
-        ),
-      },
-      advanced: { ignoreLocalEnv: true, autoConfigureMemory: false },
-      telemetry: { enabled: false, logPrompts: false },
-    }),
-    { flag: "wx", mode: 0o600 },
-  );
-  const child = invocation(
-    id,
-    [
-      "--prompt",
-      "Answer the question on stdin independently; use public web search and page fetch when needed and permitted by the user.",
-      "--model",
-      model,
-      "--output-format",
-      "stream-json",
-      "--allowed-tools",
-      "google_web_search,web_fetch",
-      "--approval-mode",
-      "plan",
-      "--extensions",
-      "none",
-      "--skip-trust",
-    ],
-    prompt,
-    env,
-  );
-  child.env.NO_BROWSER = "true";
-  // CLI loads settings before parsing --skip-trust; trust only this generated cwd.
-  child.env.GEMINI_CLI_TRUST_WORKSPACE = "true";
-  child.env.CI = "true";
-  child.env.GEMINI_WRITE_SYSTEM_MD = "false";
-  // Prevent a home .env file from injecting another auth route after sanitization.
-  for (const key of [
-    "GEMINI_API_KEY",
-    "GOOGLE_API_KEY",
-    "GOOGLE_GENAI_USE_VERTEXAI",
-    "GOOGLE_APPLICATION_CREDENTIALS",
-    "GOOGLE_CLOUD_ACCESS_TOKEN",
-    "GOOGLE_GENAI_USE_GCA",
-    "GOOGLE_GEMINI_BASE_URL",
-    "GOOGLE_VERTEX_BASE_URL",
-    "GEMINI_CLI_AUTH_OVERRIDE",
-  ])
-    child.env[key] = "";
-  return child;
+  if (effort) args.push("--effort", effort);
+  const input =
+    JSON.stringify({ event: "user", message: { content: prompt } }) + "\n";
+  return invocation(id, args, input, env);
 }
 
-// Gemini 결과 JSON에서 최종 답변과 보고된 모델을 추출하고 오류·빈 답변·모델 불일치 결과를 제외한다.
+// Only a successful terminal result is an answer; progress and tool events are not.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
-  if (exitCode !== 0) return failure(classifyError(stderr || stdout));
+  if (exitCode !== 0) return failure(classifyError(stderr + "\n" + stdout));
+
   let events;
   try {
-    events = parseEvents(stdout);
+    events = stdout
+      .split(/\r?\n/)
+      .filter((line) => line.trim())
+      .map((line) => parseObject(line));
   } catch {
     return failure("parse_error");
   }
-  const result = events.at(-1);
-  if (result.type !== 'result') return failure('incomplete_output');
-  if (result.error || result.status !== 'success') return failure(classifyError(result.error));
-  const fatal = events.find(event => event.type === 'error' && event.severity === 'error');
-  if (fatal) return failure(classifyError(fatal));
-  const selectedModel = reportedModel(events.filter(event => event.type === 'init').map(event => event.model), model);
-  if (selectedModel && model && selectedModel !== model) return failure('model_mismatch', selectedModel);
-  const usageModels = Object.keys(result.stats?.models ?? {});
-  // Init echoes config; aggregate stats do not label the primary versus web helper.
-  const actualModel = usageModels.length > 1 && usageModels.includes(model) ? null
-    : reportedModel(usageModels, model);
+  const results = events.filter((event) => event.event === "result");
+  if (results.length !== 1) return failure("incomplete_output");
+  const result = results[0].result;
+  if (!result || typeof result !== "object" || Array.isArray(result))
+    return failure("parse_error");
+
+  const actualModel = reportedModel(
+    events.flatMap((event) => [
+      event.model,
+      event.init?.model,
+      event.init?.selectedModel,
+      event.result?.model,
+      event.result?.metadata?.model,
+      event.step_update?.model,
+    ]),
+    model,
+  );
   if (actualModel && model && actualModel !== model)
     return failure("model_mismatch", actualModel);
   const calls = new Map();
-  let answer = '';
   for (const event of events) {
-    if (!['init', 'message', 'tool_use', 'tool_result', 'error', 'result'].includes(event.type))
+    if (event.event !== 'step_update') continue;
+    const step = event.step_update;
+    if (step?.subagent_info || step?.tool_call) return failure('unexpected_tool_use', actualModel);
+    if (!step?.tool_info && !step?.tool_name && !/tool|command|file|mcp|permission|subagent/i.test(step?.step_type || '')) continue;
+    const names = [step.tool_name, step.tool_info?.name].filter(name => name !== undefined);
+    if (step.step_type !== 'tool' || !Number.isInteger(step.step_index) || step.step_index < 0 ||
+        !['ACTIVE', 'DONE'].includes(step.state) || !names.length ||
+        names.some(name => !['search_web', 'read_url_content'].includes(name) || name !== names[0]))
       return failure('unexpected_tool_use', actualModel);
-    if (event.type === 'tool_use') {
-      if (!['google_web_search', 'web_fetch'].includes(event.tool_name) || !event.tool_id)
-        return failure('unexpected_tool_use', actualModel);
-      calls.set(event.tool_id, { completed: false, failed: false });
-      answer = '';
-    } else if (event.type === 'tool_result') {
-      const call = calls.get(event.tool_id);
-      if (!call || !['success', 'error'].includes(event.status)) return failure('unexpected_tool_use', actualModel);
-      call.failed = event.status === 'error'; call.completed = !call.failed;
-    } else if (event.type === 'message' && event.role === 'assistant' && typeof event.content === 'string') {
-      answer = event.delta ? answer + event.content : event.content;
-    }
+    const previous = calls.get(step.step_index);
+    if (previous && previous.name !== names[0]) return failure('unexpected_tool_use', actualModel);
+    const failed = Boolean(step.tool_info?.error);
+    calls.set(step.step_index, { name: names[0], failed,
+      completed: step.state === 'DONE' && Boolean(step.tool_info) && !failed });
   }
-  if (!answer.trim())
+  if (result.denied_actions !== undefined && !Array.isArray(result.denied_actions)) return failure('parse_error', actualModel);
+  for (const denial of result.denied_actions ?? []) {
+    const deniedCalls = [...calls.values()].filter(call => call.name === 'read_url_content');
+    if (denial?.action !== 'read_url' || !deniedCalls.length) return failure('unexpected_tool_use', actualModel);
+    for (const call of deniedCalls) { call.failed = true; call.completed = false; }
+  }
+  // Some headless denials are reported only on stderr, without a call-specific error.
+  if (/soft[- ]denied|auto[- ]denied|tool required.*permission/i.test(stderr))
+    for (const call of calls.values()) call.completed = false;
+  if (result.status !== "SUCCESS")
+    return failure(classifyError(result.error || result.status), actualModel);
+  if (typeof result.response !== "string" || !result.response.trim())
     return failure("empty_answer", actualModel);
-  return { status: "success", answer: answer.trim(), actualModel, research: researchSummary([...calls.values()]) };
+  return {
+    status: "success",
+    answer: result.response.trim(),
+    actualModel,
+    research: researchSummary([...calls.values()]),
+  };
 }
