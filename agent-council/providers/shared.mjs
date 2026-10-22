@@ -67,6 +67,18 @@ export function parseObject(stdout) {
   return parsed;
 }
 
+export function parseEvents(stdout) {
+  const events = stdout.split(/\r?\n/).filter(line => line.trim()).map(parseObject);
+  if (!events.length) throw new Error('Expected events');
+  return events;
+}
+
+// Counts describe CLI events, not source accuracy or whether a page supports a claim.
+export function researchSummary(calls) {
+  return { attempted: calls.length, completed: calls.filter(call => call.completed).length,
+    failed: calls.filter(call => call.failed).length };
+}
+
 export function reportedModel(models, requested) {
   const unique = [...new Set(models.filter(model => typeof model === 'string' && model.trim()))];
   return unique.find(model => requested && model !== requested) ?? unique[0] ?? null;

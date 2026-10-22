@@ -16,7 +16,7 @@ async function participant({ id, stage, prompt, config, runDir, adapter, environ
   const started = performance.now();
   const provider = config.providers[id];
   const result = { provider: id, stage, status: 'excluded', code: null, answer: null,
-    requestedModel: provider.model, actualModel: null, cliVersion: null, auth: null, billing: null, durationMs: 0 };
+    requestedModel: provider.model, actualModel: null, cliVersion: null, auth: null, billing: null, research: null, durationMs: 0 };
   const cwd = join(runDir, 'work', stage, id);
   try {
     if (!provider.enabled) result.code = 'provider_disabled';
@@ -36,6 +36,7 @@ async function participant({ id, stage, prompt, config, runDir, adapter, environ
         if (execution.code) result.code = safeCode(execution.code);
         else {
           const parsed = adapter.parseResult({ ...execution, model: provider.model });
+          result.research = parsed.research ?? null;
           result.actualModel = typeof parsed.actualModel === 'string' && parsed.actualModel.trim() ? redact(parsed.actualModel, environment).slice(0, 200) : null;
           if (execution.exitCode !== 0) result.code = safeCode(parsed.code);
           else if (result.actualModel && result.actualModel !== provider.model) result.code = 'model_mismatch';

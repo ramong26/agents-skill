@@ -15,6 +15,8 @@ import {
   invocation,
   parseObject,
   reportedModel,
+  parseEvents,
+  researchSummary,
 } from "../shared.mjs";
 
 export const id = "gemini";
@@ -50,7 +52,7 @@ function isolationAllowed(settings) {
   return (
     (!settings.tools?.core ||
       (Array.isArray(settings.tools.core) &&
-        settings.tools.core.length === 0)) &&
+        settings.tools.core.every(name => ['google_web_search', 'web_fetch'].includes(name)))) &&
     settings.hooksConfig?.enabled !== true &&
     settings.skills?.enabled !== true &&
     settings.admin?.mcp?.enabled !== true &&
@@ -70,6 +72,7 @@ export async function preflight(options) {
     "--approval-mode",
     "--extensions",
     "--skip-trust",
+    "--allowed-tools",
   ]);
   if (!inspected.ok) return inspected;
   const [major, minor] = inspected.cliVersion.split(".").map(Number);
@@ -179,7 +182,7 @@ export function buildInvocation({ model, prompt, cwd, env }) {
   writeFileSync(
     join(directory, "settings.json"),
     JSON.stringify({
-      tools: { core: [] },
+      tools: { core: ['google_web_search', 'web_fetch'] },
       hooksConfig: { enabled: false },
       skills: { enabled: false },
       admin: { mcp: { enabled: false }, extensions: { enabled: false } },
@@ -207,11 +210,13 @@ export function buildInvocation({ model, prompt, cwd, env }) {
     id,
     [
       "--prompt",
-      "Answer the question provided on stdin using only that supplied context.",
+      "Answer the question on stdin independently; use public web search and page fetch when needed and permitted by the user.",
       "--model",
       model,
       "--output-format",
-      "json",
+      "stream-json",
+      "--allowed-tools",
+      "google_web_search,web_fetch",
       "--approval-mode",
       "plan",
       "--extensions",
@@ -245,20 +250,44 @@ export function buildInvocation({ model, prompt, cwd, env }) {
 // Gemini 결과 JSON에서 최종 답변과 보고된 모델을 추출하고 오류·빈 답변·모델 불일치 결과를 제외한다.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
   if (exitCode !== 0) return failure(classifyError(stderr || stdout));
-  let result;
+  let events;
   try {
-    result = parseObject(stdout);
+    events = parseEvents(stdout);
   } catch {
     return failure("parse_error");
   }
-  if (result.error) return failure(classifyError(result.error));
-  const actualModel = reportedModel(
-    [result.model, ...Object.keys(result.stats?.models ?? {})],
-    model,
-  );
+  const result = events.at(-1);
+  if (result.type !== 'result') return failure('incomplete_output');
+  if (result.error || result.status !== 'success') return failure(classifyError(result.error));
+  const fatal = events.find(event => event.type === 'error' && event.severity === 'error');
+  if (fatal) return failure(classifyError(fatal));
+  const selectedModel = reportedModel(events.filter(event => event.type === 'init').map(event => event.model), model);
+  if (selectedModel && model && selectedModel !== model) return failure('model_mismatch', selectedModel);
+  const usageModels = Object.keys(result.stats?.models ?? {});
+  // Init echoes config; aggregate stats do not label the primary versus web helper.
+  const actualModel = usageModels.length > 1 && usageModels.includes(model) ? null
+    : reportedModel(usageModels, model);
   if (actualModel && model && actualModel !== model)
     return failure("model_mismatch", actualModel);
-  if (typeof result.response !== "string" || !result.response.trim())
+  const calls = new Map();
+  let answer = '';
+  for (const event of events) {
+    if (!['init', 'message', 'tool_use', 'tool_result', 'error', 'result'].includes(event.type))
+      return failure('unexpected_tool_use', actualModel);
+    if (event.type === 'tool_use') {
+      if (!['google_web_search', 'web_fetch'].includes(event.tool_name) || !event.tool_id)
+        return failure('unexpected_tool_use', actualModel);
+      calls.set(event.tool_id, { completed: false, failed: false });
+      answer = '';
+    } else if (event.type === 'tool_result') {
+      const call = calls.get(event.tool_id);
+      if (!call || !['success', 'error'].includes(event.status)) return failure('unexpected_tool_use', actualModel);
+      call.failed = event.status === 'error'; call.completed = !call.failed;
+    } else if (event.type === 'message' && event.role === 'assistant' && typeof event.content === 'string') {
+      answer = event.delta ? answer + event.content : event.content;
+    }
+  }
+  if (!answer.trim())
     return failure("empty_answer", actualModel);
-  return { status: "success", answer: result.response.trim(), actualModel };
+  return { status: "success", answer: answer.trim(), actualModel, research: researchSummary([...calls.values()]) };
 }

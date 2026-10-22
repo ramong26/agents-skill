@@ -16,5 +16,10 @@
 - 현재 총괄의 허용된 도구로 중요한 주장을 확인하고, 미확인 내용은 최종 답변에 남긴다.
 
 참여 Gemini CLI의 실행 인자·설정 차이·출력 추출은 `adapter.mjs`에서 관리한다.
+참여 도구는 `google_web_search`·`web_fetch`만 허용한다. 전용 작업 폴더 설정과 자동 승인 목록을 이 두 도구로 제한하며 셸·파일·MCP·확장·스킬·훅은 허용하지 않는다.
+stream-json의 호출·결과·최종 상태를 검사한다. 도구 실패 뒤 정상 답변은 보존하고 원문 접근 불가를 성공으로 표현하지 않는다.
+`init.model`은 선택 설정이며 실제 응답 모델의 증명이 아니다. `stats.models`에는 웹 내부 보조 모델도 섞인다. 요청 모델을 포함한 복수 집계만 있으면 실제 응답 모델은 확인 불가로 남기고, 명확한 선택·모델 불일치는 계속 제외한다.
+현재 저장소 대상은 Gemini CLI다. 설치본이 AGY여도 자동 교체·덮어쓰지 않는다. AGY 전환은 별도 어댑터·인증·도구 이벤트 검증이 필요하다.
+도구 식별자는 [검색](https://geminicli.com/docs/tools/web-search/)과 [열람](https://geminicli.com/docs/tools/web-fetch/) 문서를 기준으로 한다.
 공식 기준은 [비대화형 실행](https://geminicli.com/docs/cli/headless/), [인증](https://geminicli.com/docs/get-started/authentication/), [할당량·요금](https://geminicli.com/docs/resources/quota-and-pricing/)이다.
 최종 취합은 [취합 기준](../../references/synthesis-rules.md)을 따른다.

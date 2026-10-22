@@ -5,6 +5,8 @@ import {
   inspectCli,
   invocation,
   parseObject,
+  parseEvents,
+  researchSummary,
   reportedModel,
 } from "../shared.mjs";
 
@@ -16,6 +18,8 @@ export async function preflight(options) {
     "--safe-mode",
     "--restricted",
     "--tools",
+    "--allowedTools",
+    "--verbose",
     "--strict-mcp-config",
     "--permission-prompts",
   ]);
@@ -57,7 +61,9 @@ export function buildInvocation({ model, effort, prompt, env }) {
     "--safe-mode",
     "--restricted",
     "--tools",
-    "",
+    "WebSearch,WebFetch",
+    "--allowedTools",
+    "WebSearch,WebFetch",
     "--strict-mcp-config",
     "--mcp-config",
     '{"mcpServers":{}}',
@@ -67,7 +73,8 @@ export function buildInvocation({ model, effort, prompt, env }) {
     "none",
     "--no-session-persistence",
     "--output-format",
-    "json",
+    "stream-json",
+    "--verbose",
     "--model",
     model,
   ];
@@ -78,12 +85,14 @@ export function buildInvocation({ model, effort, prompt, env }) {
 // Claude 결과 JSON에서 최종 답변과 보고된 모델을 추출하고 오류·빈 답변·모델 불일치 결과를 제외한다.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
   if (exitCode !== 0) return failure(classifyError(stderr || stdout));
-  let result;
+  let events;
   try {
-    result = parseObject(stdout);
+    events = parseEvents(stdout);
   } catch {
     return failure("parse_error");
   }
+  const result = events.at(-1);
+  if (result.type !== 'result') return failure('incomplete_output');
   if (
     result.is_error ||
     result.error ||
@@ -98,13 +107,37 @@ export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
     result.is_error !== false
   )
     return failure("parse_error");
-  const actualModel = reportedModel(
-    [result.model, ...Object.keys(result.modelUsage ?? {})],
-    model,
-  );
+  const respondingModels = events.flatMap(event => [event.message?.model,
+    event.type === 'system' && event.subtype === 'init' ? event.model : null]).concat(result.model)
+    .filter(value => typeof value === 'string' && value.trim());
+  const usageModels = Object.keys(result.modelUsage ?? {});
+  // Web tools can bill an internal helper; aggregate usage is not a main-model fallback.
+  const actualModel = reportedModel(respondingModels.length ? respondingModels
+    : usageModels.length === 1 ? usageModels : [], model);
   if (actualModel && model && actualModel !== model)
     return failure("model_mismatch", actualModel);
+  const calls = new Map();
+  for (const event of events) {
+    for (const block of Array.isArray(event.message?.content) ? event.message.content : []) {
+      if (block.type === 'tool_use') {
+        if (!['WebSearch', 'WebFetch'].includes(block.name) || !block.id)
+          return failure('unexpected_tool_use', actualModel);
+        calls.set(block.id, { completed: false, failed: false });
+      } else if (block.type === 'tool_result') {
+        const call = calls.get(block.tool_use_id);
+        if (!call) return failure('unexpected_tool_use', actualModel);
+        call.failed = block.is_error === true;
+        call.completed = !call.failed;
+      } else if (typeof block.type === 'string' && block.type.includes('tool')) {
+        return failure('unexpected_tool_use', actualModel);
+      }
+    }
+  }
+  for (const denial of result.permission_denials ?? []) {
+    if (!['WebSearch', 'WebFetch'].includes(denial.tool_name)) return failure('unexpected_tool_use', actualModel);
+    calls.set(denial.tool_use_id, { completed: false, failed: true });
+  }
   if (typeof result.result !== "string" || !result.result.trim())
     return failure("empty_answer", actualModel);
-  return { status: "success", answer: result.result.trim(), actualModel };
+  return { status: "success", answer: result.result.trim(), actualModel, research: researchSummary([...calls.values()]) };
 }
