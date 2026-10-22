@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-ALLOWED_FRONTMATTER_KEYS = {"name", "description", "license", "allowed-tools", "metadata"}
+ALLOWED_FRONTMATTER_KEYS = {"name", "description", "license", "allowed-tools", "metadata", "disable-model-invocation"}
 NAME_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 KEY_PATTERN = re.compile(r"^([A-Za-z0-9_-]+):(?:[ \t]*(.*))?$")
 
@@ -60,6 +60,8 @@ def read_frontmatter(path: Path) -> tuple[dict[str, str], str]:
     unexpected = set(fields) - ALLOWED_FRONTMATTER_KEYS
     if unexpected:
         raise ValueError(f"unexpected frontmatter key(s): {', '.join(sorted(unexpected))}")
+    if "disable-model-invocation" in fields and fields["disable-model-invocation"] not in {"true", "false"}:
+        raise ValueError("disable-model-invocation must be true or false")
 
     description = fields.get("description", "").strip()
     if description in {">", ">-", ">+", "|", "|-", "|+"}:
