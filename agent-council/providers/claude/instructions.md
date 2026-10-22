@@ -13,6 +13,9 @@ Claude Code가 제공하는 스킬 디렉터리 정보를 사용할 수 있으�
 - 총괄 세션의 허용된 도구로 중요한 사실을 검증하고 최종 답변을 직접 작성한다.
 
 참여 Claude CLI의 비대화형 실행·출력 해석·모델 설정은 `adapter.mjs`에서 관리한다.
+참여자는 `WebSearch`와 `WebFetch`만 사용할 수 있다. `--tools`·`--allowedTools`의 제한과 safe/restricted·빈 MCP 설정을 함께 유지한다.
+stream-json에서 도구 호출·결과와 최종 응답을 분리한다. 검색·열람 실패 뒤 정상 답변은 보존하고 미확인 출처는 명시한다.
+응답 모델은 assistant 메시지·초기화 메타데이터로 확인한다. `modelUsage`에는 웹 도구 내부 보조 모델이 포함될 수 있으므로 이를 응답 모델 대체로 단정하지 않는다. 응답 메타데이터 없이 여러 사용 모델만 있으면 실제 응답 모델은 확인 불가다.
 공식 기준은 [비대화형 실행](https://code.claude.com/docs/en/headless), [모델 설정](https://code.claude.com/docs/en/model-config), [사용 크레딧](https://support.claude.com/en/articles/12429409-manage-usage-credits-for-paid-claude-plans)이다.
 최종 취합은 [취합 기준](../../references/synthesis-rules.md)을 따른다.
 

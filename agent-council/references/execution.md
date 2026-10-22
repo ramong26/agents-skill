@@ -31,6 +31,25 @@
 
 세 항목만 요청한다. 중요한 한계·미확인 사실은 핵심 근거에 포함한다. 독립 초안을 모두 수집한 뒤 총괄이 검증·종합하며, 최종 화면에는 종합을 맨 위에 표시하고 각 참여자의 답변 전문을 이어 붙인다.
 
+최신 정보·가격·제품 비교·특정 커뮤니티 요청에는 참여자가 직접 공개 검색·원문 열람을 한다.
+사용자 지정 사이트를 포함하고, 게시일·사건 발생일과 질문의 기준 시점을 구분한다.
+단순 계산·문장 수정에는 검색을 강제하지 않으며 사용자가 검색을 금지하면 제공 자료로 답한다.
+검색 요약은 원문 열람이 아니다. 공식 문서와 커뮤니티 경험담을 구분하고 출처·날짜를 만들지 않는다.
+검색 도구 미지원·권한 부족·접근 실패를 숨기거나 조사 성공으로 표시하지 않는다.
+
+## 참여 도구 경계
+
+| CLI | 허용 도구·실행 설정 | 수집 이벤트 |
+| --- | --- | --- |
+| Codex | `web_search="live"`, read-only, 명령·MCP·앱·에이전트 비활성 유지 | `web_search`의 `search`·`open_page`·`find_in_page` |
+| Claude Code | `--tools`와 `--allowedTools`를 `WebSearch,WebFetch`로 제한, safe/restricted 유지 | stream-json의 `tool_use`·`tool_result` |
+| Antigravity CLI | 기존 전역 권한 검사와 sandbox 유지 | `step_update`의 `search_web`·`read_url_content`만 허용 |
+
+파일 수정·터미널 실행·업로드·배포·외부 메시지 발송·추가 모델 호출은 금지한다.
+금지·식별 불가 도구는 `unexpected_tool_use`로 해당 참여자를 제외한다. 전체 권한을 해제하지 않는다.
+정상 최종 답변이 있으면 검색 도구 실패·거부만으로 초안을 버리지 않는다. 정상 답변이 없는 오류·시간 초과는 기존 제외 규칙을 유지한다.
+조사 권한과 네트워크·서비스 지원 여부는 별개다. 로컬 설정이 도구를 허용해도 실제 검색 성공을 보장하지 않는다.
+
 ## 명령
 
 ```text
@@ -81,7 +100,8 @@ node "<SKILL>/scripts/council.mjs" finalize --run "<run-directory>" --verificati
 각 결과는 서비스, 단계, 성공/제외, 실패 코드, 조치 안내(`actionHint`), 필요한 경우 공식 로그인 명령(`loginHint`), 최종 답변, 요청 모델, 실제 확인 모델, 대체 모델과 전환 사유, CLI 버전, 소요 시간을 구분한다.
 `auth`와 `billing`은 별도 항목이다. `auth: existing_login`은 해당 호출에서 기존 로그인을 확인했다는 뜻이다. `billing: included_only`는 호환용 `--included-only` 옵션으로 전달한 사용자 주장 표식이며 별도 확인한 사실이 아니다. `billing: unconfirmed`는 과금 상태를 확인하지 않았다는 기록이며 실행을 막지 않는다. 잔여 사용량은 요청 전 보장하지 않으며, 한도 오류는 `quota_exhausted`로 반환한다. CLI가 밝히지 않은 한도 종류나 추가 사용 여부를 추정하지 않는다.
 Google 참여자는 `useG1Credits`가 `true`이거나 값이 잘못됐으면 CLI 검사에서 제외한다. 키가 없으면 Antigravity CLI 문서에 기재된 기본값 `false`를 적용한다. `doctor`는 `agy models`가 성공하고 설정 모델이 목록에 있는지도 확인한다. CLI는 OS keyring의 계정 토큰을 사용하며 스킬은 토큰을 직접 읽지 않는다. 실제 headless 요청에서 인증 오류가 나면 해당 참여자를 제외한다.
-Antigravity CLI는 전역 GEMINI.md, Skills, plugins, MCP 설정의 영향을 받을 수 있다. 실행별 전용 작업 폴더만 workspace로 지정하고 --sandbox를 사용한다. 기본 workspace 파일 접근은 해당 임시 폴더에 제한되며 글로벌 permissions.allow가 비어 있지 않거나 allowNonWorkspaceAccess가 켜져 있으면 사전 제외한다. 결과 stream에서 도구 호출이 관찰되면 답변을 취합하지 않는다.
+Antigravity CLI는 전역 GEMINI.md, Skills, plugins, MCP 설정의 영향을 받을 수 있다. 실행별 전용 작업 폴더만 workspace로 지정하고 --sandbox를 사용한다. 기본 workspace 파일 접근은 해당 임시 폴더에 제한되며 글로벌 permissions.allow가 비어 있지 않거나 allowNonWorkspaceAccess가 켜져 있으면 사전 제외한다. 결과 stream에서 허용한 공개 검색·열람 이외의 도구 호출이 관찰되면 답변을 취합하지 않는다.
+`research`의 `attempted`·`completed`·`failed`는 관측한 허용 도구 호출·완료·실패 수다. 미완료는 attempted에만 포함하며 미실행은 `null`일 수 있다. 완료 이벤트는 출처 검증 성공이 아니며, 실패·미완료·미관측을 조사 성공으로 바꾸지 않는다.
 확인 모델이 없으면 `null` 또는 확인 불가로 남기며 모델 본문의 자기소개로 채우지 않는다.
 Antigravity CLI의 공개 stream-json 예시는 실제 모델 식별자를 결과에 포함하지 않는다. 별도 메타데이터가 없으면 actualModel을 null로 기록하고 요청 모델의 본문 자기소개로 채우지 않는다.
 진행 이벤트와 원시 오류 로그를 정상 답변이나 검증 근거로 사용하지 않는다.

@@ -13,6 +13,9 @@
 - 취소 시 실행 중인 취합 프로세스가 정상적으로 정리됐는지 확인하고 미확인 상태는 그대로 보고한다.
 
 참여 Codex CLI의 실행 인자·파싱·인증 확인은 `adapter.mjs`의 책임이다.
+참여자는 `web_search="live"`로 공개 검색과 원문 열람을 수행할 수 있다. read-only와 명령·앱·MCP·추가 에이전트 차단은 유지한다.
+검색 실패 뒤 정상 답변은 보존하되 직접 확인한 URL과 미확인 범위를 구분한다. `research`는 도구 관측이며 총괄 검증의 대체물이 아니다.
+검색 설정은 [공식 웹 검색 안내](https://learn.chatgpt.com/docs/web-search)를 기준으로 한다.
 공식 기준은 [Codex 비대화형 실행](https://learn.chatgpt.com/docs/non-interactive-mode)과 [모델 문서](https://learn.chatgpt.com/docs/models?surface=cli)다.
 최종 취합은 [취합 기준](../../references/synthesis-rules.md)에 따라 현재 세션에서 작성한다.
 

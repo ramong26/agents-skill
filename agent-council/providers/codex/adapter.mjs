@@ -5,6 +5,7 @@ import {
   inspectCli,
   invocation,
   reportedModel,
+  researchSummary,
 } from "../shared.mjs";
 
 export const id = "codex";
@@ -58,7 +59,7 @@ export function buildInvocation({ model, effort, prompt, cwd, env }) {
     "-c",
     'approval_policy="never"',
     "-c",
-    'web_search="disabled"',
+    'web_search="live"',
     "-c",
     "project_doc_max_bytes=0",
   ];
@@ -82,7 +83,7 @@ export function buildInvocation({ model, effort, prompt, cwd, env }) {
   return invocation(id, args, prompt, env);
 }
 
-// Codex 이벤트에서 최종 답변과 보고된 모델을 추출하고 오류·도구 사용·모델 불일치 결과를 제외한다.
+// 공개 웹 도구만 수집하며 다른 도구·모델 불일치·불완전 결과는 제외한다.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
   if (exitCode !== 0) return failure(classifyError(stderr + "\n" + stdout));
   let events;
@@ -112,12 +113,7 @@ export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
     return failure("model_mismatch", actualModel);
   if (
     events.some((event) =>
-      [
-        "command_execution",
-        "file_change",
-        "mcp_tool_call",
-        "web_search",
-      ].includes(event.item?.type),
+      event.item && !["agent_message", "reasoning", "web_search", "todo_list", "error"].includes(event.item.type),
     )
   )
     return failure("unexpected_tool_use", actualModel);
@@ -132,5 +128,17 @@ export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
   const answer = messages.at(-1)?.item?.text;
   if (typeof answer !== "string" || !answer.trim())
     return failure("empty_answer", actualModel);
-  return { status: "success", answer: answer.trim(), actualModel };
+  const calls = new Map();
+  for (const event of events.filter(event => event.item?.type === 'web_search')) {
+    const item = event.item;
+    const identified = ['search', 'open_page', 'find_in_page'].includes(item.action?.type);
+    // CLI 0.163 emits a known placeholder before the completed action is available.
+    const pending = event.type === 'item.started' && item.action?.type === 'other';
+    if (!item.id || (!identified && !pending))
+      return failure('unexpected_tool_use', actualModel);
+    calls.set(item.id, { completed: event.type === 'item.completed' && !item.error && item.status !== 'failed',
+      failed: Boolean(item.error || item.status === 'failed'), identified });
+  }
+  if ([...calls.values()].some(call => !call.identified)) return failure('unexpected_tool_use', actualModel);
+  return { status: "success", answer: answer.trim(), actualModel, research: researchSummary([...calls.values()]) };
 }

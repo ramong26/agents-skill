@@ -16,6 +16,9 @@
 - Gemini의 서비스 기본 추론 설정을 사용하며 다른 서비스의 medium을 억지로 적용하지 않는다.
 - 현재 총괄의 허용된 도구로 중요한 주장을 확인하고, 미확인 내용은 최종 답변에 남긴다.
 
-Antigravity CLI 결과는 stream-json의 최종 result 이벤트에서만 추출한다. 도구 사용이 관찰되면 해당 결과를 제외한다.
+Antigravity CLI 답변은 stream-json의 최종 result 이벤트에서만 추출한다. 도구 이벤트는 `search_web`·`read_url_content`만 수집하고 다른 도구·명령·파일·MCP·하위 에이전트는 제외한다.
+`step_update`의 `tool_name`·`tool_info.name`을 대조하고 `DONE`·오류 없음인 호출만 완료로 센다. 검색 실패 뒤 정상 답변은 보존하며 완료 횟수를 출처 검증으로 표현하지 않는다.
+기존 전역 권한 검사와 sandbox를 유지하며 도구 자동 승인이나 글로벌 권한을 추가하지 않는다. headless 권한 거절은 exit 0으로 끝날 수도 있으므로 조사 불가·미확인 범위를 답변에 명시한다.
+도구 식별자는 [공식 도구 안내](https://antigravity.google/docs/hooks#search-and-research), 이벤트는 [headless 문서](https://antigravity.google/docs/cli/headless)를 기준으로 한다.
 공식 기준은 Antigravity CLI의 headless mode, authentication, model list, permissions 문서다.
 최종 취합은 취합 기준을 따른다.

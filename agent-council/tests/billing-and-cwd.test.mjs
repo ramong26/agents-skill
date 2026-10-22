@@ -82,7 +82,7 @@ test('Claude Free login is confirmed but Claude Code model calls are blocked', a
     cwd: home,
     runProcess: async ({ args }) => {
       if (args[0] === '--version') return { exitCode: 0, stdout: '1.0.0', stderr: '' };
-      if (args[0] === '--help') return { exitCode: 0, stdout: '--safe-mode --restricted --tools --strict-mcp-config --permission-prompts', stderr: '' };
+      if (args[0] === '--help') return { exitCode: 0, stdout: '--safe-mode --restricted --tools --allowedTools --verbose --strict-mcp-config --permission-prompts', stderr: '' };
       if (args.includes('auth')) return { exitCode: 0, stdout: JSON.stringify({
         loggedIn: true, authMethod: 'claude.ai', subscriptionType: 'free',
       }), stderr: '' };
@@ -105,7 +105,7 @@ test('both official adapters accept existing login without a billing assertion',
       env: { USERPROFILE: home, PATH: binDir }, cwd: home,
       runProcess: async ({ args }) => {
         if (args[0] === '--version') return { exitCode: 0, stdout: '1.0.0', stderr: '' };
-        if (args.includes('--help')) return { exitCode: 0, stdout: '--ignore-user-config --ignore-rules --ephemeral --json --safe-mode --restricted --tools --strict-mcp-config --permission-prompts', stderr: '' };
+        if (args.includes('--help')) return { exitCode: 0, stdout: '--ignore-user-config --ignore-rules --ephemeral --json --safe-mode --restricted --tools --allowedTools --verbose --strict-mcp-config --permission-prompts', stderr: '' };
         return { exitCode: 0, stdout: name === 'codex' ? 'Logged in using ChatGPT' : JSON.stringify({ loggedIn: true, authMethod: 'claude.ai', subscriptionType: 'pro' }), stderr: '' };
       },
     });

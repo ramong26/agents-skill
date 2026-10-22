@@ -47,7 +47,7 @@ async function invokeModel({ adapter, model, effort, prompt, cwd, env, runProces
   if (actualModel && actualModel !== model) return { code: 'model_mismatch', actualModel };
   if (parsed.status !== 'success') return { code: safeCode(parsed.code), actualModel };
   if (typeof parsed.answer !== 'string' || !parsed.answer.trim()) return { code: 'empty_response', actualModel };
-  return { code: null, status: 'success', actualModel, answer: parsed.answer };
+  return { code: null, status: 'success', actualModel, answer: parsed.answer, research: parsed.research ?? null };
 }
 
 function providerSet(value) {
@@ -64,7 +64,7 @@ async function participant({ id, stage, prompt, config, runDir, adapter, environ
   const provider = config.providers[id];
   const result = { provider: id, stage, status: 'excluded', code: null, answer: null,
     requestedModel: provider.model, actualModel: null, cliVersion: null, auth: null, billing: null,
-    loginHint: null, usageHint: null, freeFallbackModel: null, fallbackReason: null, durationMs: 0 };
+    loginHint: null, usageHint: null, freeFallbackModel: null, fallbackReason: null, research: null, durationMs: 0 };
   const cwd = join(runDir, 'work', stage, id);
   try {
     if (!provider.enabled) result.code = 'provider_disabled';
@@ -84,6 +84,7 @@ async function participant({ id, stage, prompt, config, runDir, adapter, environ
         const attempt = await invokeModel({ adapter, model: provider.model, effort: provider.effort, prompt, cwd, env,
           runProcess, signal, timeoutMs: config.execution[`${stage}_timeout_seconds`] * 1000 });
         result.code = attempt.code;
+        result.research = attempt.research ?? null;
         result.actualModel = attempt.actualModel ? redact(attempt.actualModel, environment) : null;
         if (attempt.status === 'success') {
           result.status = 'success';

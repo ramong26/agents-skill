@@ -9,6 +9,7 @@ import {
   invocation,
   parseObject,
   reportedModel,
+  researchSummary,
 } from "../shared.mjs";
 
 export const id = "gemini";
@@ -159,17 +160,6 @@ export function buildInvocation({ model, effort, prompt, env }) {
   return invocation(id, args, input, env);
 }
 
-function usedTools(event) {
-  if (event.event !== "step_update") return false;
-  const step = event.step_update;
-  return (
-    !!step?.tool_info ||
-    !!step?.subagent_info ||
-    !!step?.tool_call ||
-    /tool|command|file|mcp|permission|subagent/i.test(step?.step_type || "")
-  );
-}
-
 // Only a successful terminal result is an answer; progress and tool events are not.
 export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
   if (exitCode !== 0) return failure(classifyError(stderr + "\n" + stdout));
@@ -202,8 +192,32 @@ export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
   );
   if (actualModel && model && actualModel !== model)
     return failure("model_mismatch", actualModel);
-  if (events.some(usedTools))
-    return failure("unexpected_tool_use", actualModel);
+  const calls = new Map();
+  for (const event of events) {
+    if (event.event !== 'step_update') continue;
+    const step = event.step_update;
+    if (step?.subagent_info || step?.tool_call) return failure('unexpected_tool_use', actualModel);
+    if (!step?.tool_info && !step?.tool_name && !/tool|command|file|mcp|permission|subagent/i.test(step?.step_type || '')) continue;
+    const names = [step.tool_name, step.tool_info?.name].filter(name => name !== undefined);
+    if (step.step_type !== 'tool' || !Number.isInteger(step.step_index) || step.step_index < 0 ||
+        !['ACTIVE', 'DONE'].includes(step.state) || !names.length ||
+        names.some(name => !['search_web', 'read_url_content'].includes(name) || name !== names[0]))
+      return failure('unexpected_tool_use', actualModel);
+    const previous = calls.get(step.step_index);
+    if (previous && previous.name !== names[0]) return failure('unexpected_tool_use', actualModel);
+    const failed = Boolean(step.tool_info?.error);
+    calls.set(step.step_index, { name: names[0], failed,
+      completed: step.state === 'DONE' && Boolean(step.tool_info) && !failed });
+  }
+  if (result.denied_actions !== undefined && !Array.isArray(result.denied_actions)) return failure('parse_error', actualModel);
+  for (const denial of result.denied_actions ?? []) {
+    const deniedCalls = [...calls.values()].filter(call => call.name === 'read_url_content');
+    if (denial?.action !== 'read_url' || !deniedCalls.length) return failure('unexpected_tool_use', actualModel);
+    for (const call of deniedCalls) { call.failed = true; call.completed = false; }
+  }
+  // Some headless denials are reported only on stderr, without a call-specific error.
+  if (/soft[- ]denied|auto[- ]denied|tool required.*permission/i.test(stderr))
+    for (const call of calls.values()) call.completed = false;
   if (result.status !== "SUCCESS")
     return failure(classifyError(result.error || result.status), actualModel);
   if (typeof result.response !== "string" || !result.response.trim())
@@ -212,5 +226,6 @@ export function parseResult({ stdout = "", stderr = "", exitCode, model }) {
     status: "success",
     answer: result.response.trim(),
     actualModel,
+    research: researchSummary([...calls.values()]),
   };
 }
