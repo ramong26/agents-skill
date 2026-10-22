@@ -37,6 +37,9 @@ Antigravity CLI는 workspace `.agents/skills`와 사용자 전역 스킬 경로�
 
 ## 등록·갱신 원칙
 
+`agents/openai.yaml`의 `allow_implicit_invocation: false`는 Codex 자동 선택을 막고, `SKILL.md`의 `disable-model-invocation: true`는 Claude Code 자동 호출을 막는다. 이 파일들을 포함해 스킬 전체를 갱신한다.
+AGY 등 다른 클라이언트가 같은 설정을 지원한다고 가정하지 않는다. 공통 본문의 명시적 호출 조건도 함께 적용하고 실제 스킬 발견과 호출 조건을 구분해 확인한다. 이미 본문을 읽은 세션은 새 대화에서 다시 확인한다.
+
 1. 가능한 환경에서는 공통 원본을 가리키는 폴더 링크로 등록한다.
 2. 링크가 불가능하면 `SKILL.md`만이 아니라 `agent-council/` 전체를 복사한다.
 3. 복사 방식이면 원본 변경 때 등록한 모든 복사본을 함께 갱신하고 실제 파일을 비교한다.
