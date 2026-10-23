@@ -4,6 +4,16 @@
 설치된 스킬 폴더의 절대 경로를 기준으로 Node.js 실행기를 사용한다.
 실행 명령과 JSON 형식은 실행 규약을 따른다.
 
+## 호스트 자동 검토
+
+Antigravity CLI가 총괄이면 현재 호스트의 `auto` execution mode에서 council 명령을 실행한다. 명령은 기본적으로 터미널 샌드박스를 사용하며, 네트워크·기존 로그인 접근 등으로 샌드박스 밖 실행이 필요하면 호스트의 자동 평가 경로에 제출한다. 명령 도구의 설명과 대화 맥락에 [공통 호스트 자동 검토](../../references/execution.md#호스트-자동-검토)의 사용자 요청 근거·자료·전송 내용·수신 서비스를 담는다. Codex 전용 도구 인자를 복사하지 않는다.
+
+새 총괄 세션의 시작 예는 `agy --mode=auto --sandbox`이며, 기존 세션은 `/config`에서 모드를 확인한다. CLI auto는 샌드박스를 사용할 수 있는 macOS·Linux v1.3.5+, Windows v1.4.4+에서 지원한다. `toolPermission: strict`와 명시적 Ask·Deny 규칙은 auto보다 우선하므로 실제 정책을 확인하고, 설정을 바꾸지 않은 채 자동 승인이 적용됐다고 주장하지 않는다.
+
+위험한 명령은 auto에서도 사용자 승인이 필요할 수 있다. 지원·샌드박스가 없거나 호스트가 차단하면 상태를 설명하며 `always-proceed`·`--dangerously-skip-permissions`로 대체하거나 전역 권한을 변경하지 않는다. 총괄의 auto 모드와 아래 참여 AGY의 격리·도구 제한은 별개다.
+
+공식 근거: [CLI permissions와 auto mode](https://antigravity.google/docs/permissions?tab=cli).
+
 - 현재 세션의 모델·전역 기본 모델·사용자 인증 설정을 바꾸지 않는다.
 - 세 참여 CLI에는 같은 입력과 답변 형식을 전달한다. Gemini에만 아이디어 담당 역할을 부여하지 않는다.
 - Google 참여자는 기존 provider 키 gemini를 유지하지만 Antigravity CLI의 agy 실행 파일을 사용한다.

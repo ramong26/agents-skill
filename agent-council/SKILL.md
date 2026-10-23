@@ -22,7 +22,7 @@ disable-model-invocation: true
 - 실행 시 [실행 규약](references/execution.md)을 읽어 입력·명령·기록 경로를 확인한다.
 - 기존 CLI 로그인을 사용해 바로 요청한다. 사용자에게 사용량·과금 설정 확인이나 실행 허용 목록을 요구하지 않는다. 인증·오류·과금 한계를 설명할 때만 [계정·오류 안내](references/account-checks.md)를 읽는다.
 - 현재 총괄이 Codex이면 [Codex 안내](providers/codex/instructions.md), Claude Code이면 [Claude 안내](providers/claude/instructions.md), Antigravity CLI(`agy`)이면 [Gemini 안내](providers/gemini/instructions.md)만 읽는다.
-- Codex의 Windows 제한 셸에서는 `doctor`·`draft`·`review`를 첫 호출부터 승인된 일반 사용자 환경에서 실행한다. [Codex 안내](providers/codex/instructions.md)의 호스트 권한 절차를 따르며 참여 CLI의 샌드박스·도구 제한은 유지한다.
+- Codex·Claude Code·Antigravity 중 어느 환경이 총괄이든 [실행 규약의 호스트 자동 검토](references/execution.md#호스트-자동-검토)를 적용한다. 각 호스트의 기본 자동 검토 경로에 실행과 자료 전송 범위를 제출하며, 참여 CLI의 샌드박스·도구 제한은 유지한다.
 - 설치·갱신이 필요할 때만 [설치 안내](references/installation.md)를 읽는다.
 
 ## 공통 입력
@@ -30,6 +30,8 @@ disable-model-invocation: true
 스킬 호출 문구를 제외한 사용자의 질문이나 작업 요청을 `question`에 원문 그대로 넣고 활성 CLI에 바로 전달한다. 질문을 요약·교정하거나 유도 질문으로 바꾸지 않는다.
 총괄의 선행 답변·추론 결과·추천·가설·검색 요약·다른 참여자의 답변을 독립 초안 입력에 추가하지 않는다. 총괄의 비교·검증·종합은 독립 초안 수집 뒤에 수행한다.
 선택 필드는 사용자가 명시한 배경·제약·미확인 질문과 제공하거나 지정한 원자료만 그대로 구분해 담는다. 총괄이 사실·가정·해석을 보충하지 않으며 질문만 있으면 `question`만 작성한다.
+사용자가 해당 질문의 검토를 위해 제공·지정한 원자료는 명시적 스킬 호출과 대화에서 확인되는 검토 범위를 근거로 공통 입력에 포함하고 호스트 승인·자동 검토에 제출한다. 같은 범위의 동의를 파일별·서비스별로 반복해서 요구하지 않는다.
+호스트 요청에는 사용자 요청의 근거, 대상 자료, 실제 전달 내용과 활성 수신 서비스를 설명한다. 이 원칙은 세 총괄 환경에 동일하게 적용한다. 사용자가 제외한 자료나 무관한 파일은 포함하지 않으며, 확인되지 않은 전송 허용을 만들어 내지 않는다. 스킬 지침은 호스트의 승인·차단 결정을 대신하지 않는다.
 개인 로컬 작업 위치에 `request.json`을 작성한다. 설치 폴더나 공개 저장소를 기록 위치로 사용하지 않는다.
 
 ## 진행

@@ -17,6 +17,8 @@
 Codex의 Windows 실행 도구가 `workspace-write` 등으로 파일·네트워크 접근을 제한하면, council의 `doctor`·`draft`·`review`는 첫 호출부터 `exec_command`의 `sandbox_permissions: "require_escalated"`와 작업 목적을 설명하는 `justification`으로 요청한다. 이 값은 council의 CLI 옵션이 아니라 호스트 실행 도구의 인자다.
 제한 셸에서 먼저 실패시킨 뒤 재요청하지 않는다. 제한 셸은 외부 서버 DNS, OS keyring, CLI의 사용자 폴더 접근을 막아 정상 로그인도 실행 오류·시간 초과·인증 접근 실패로 보이게 할 수 있다.
 
+호스트가 Auto-review를 사용하는 세션이면 해당 검토에 요청을 제출한다. `justification`은 [공통 호스트 자동 검토](../../references/execution.md#호스트-자동-검토)의 전송 설명을 따른다. `require_escalated` 자체가 자동 승인 모드를 켜는 설정은 아니며, 호스트의 현재 승인 정책이 판단한다.
+
 - 호스트가 승인한 일반 사용자 환경에서만 실행한다. 관리자 권한이나 전역 샌드박스 해제를 요구하지 않는다.
 - 승인이 거절되거나 이 실행 경로가 없으면 해당 명령을 실행하지 않고 호스트 권한 제한을 설명한다. 다른 도구·자격 증명 복사·HOME 변경으로 우회하거나 모델 요청을 재시도하지 않는다.
 - 권한 요청은 council 최상위 실행 명령에만 적용한다. 참여 Codex의 read-only, Claude의 safe/restricted, AGY의 sandbox와 도구 제한을 유지한다.
