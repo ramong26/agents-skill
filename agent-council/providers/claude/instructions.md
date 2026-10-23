@@ -5,6 +5,16 @@
 Claude Code가 제공하는 스킬 디렉터리 정보를 사용할 수 있으면 그 경로를 기준으로 해석한다.
 실행 명령과 JSON 형식은 [실행 규약](../../references/execution.md)을 따른다.
 
+## 호스트 자동 검토
+
+Claude Code가 총괄이면 현재 호스트의 `auto` permission mode에서 council 명령을 classifier 검토에 제출한다. 명령 도구의 설명과 대화 맥락에 [공통 호스트 자동 검토](../../references/execution.md#호스트-자동-검토)의 사용자 요청 근거·자료·전송 내용·수신 서비스를 담는다. Codex 전용 `sandbox_permissions`나 `justification` 인자를 Claude 도구에 복사하지 않는다.
+
+새 총괄 세션의 시작 예는 `claude --permission-mode auto`이며, 기존 세션은 `/permissions`에서 모드를 확인한다. 스킬이 현재 세션을 자동 모드로 만들었다고 가정하거나 전역 기본값을 변경하지 않는다. `dontAsk`는 필요한 승인 요청을 자동 거절하는 모드이므로 classifier 자동 검토와 구분하고, `bypassPermissions`·`--dangerously-skip-permissions`로 대체하지 않는다.
+
+지원 버전·모델·계정·관리 정책에 따라 auto 사용이 제한될 수 있다. 모드가 적용되지 않거나 classifier가 차단하면 그 상태를 설명하고 우회하지 않는다. 이는 총괄 호스트의 명령 승인 절차이며, 아래 참여 Claude의 safe/restricted·공개 검색 도구 제한은 유지한다.
+
+공식 근거: [permission modes](https://code.claude.com/docs/en/permission-modes), [permission 설정](https://code.claude.com/docs/en/permissions).
+
 - 현재 세션 모델·전역 설정·계정 결제 설정을 변경하지 않는다.
 - 활성 참여 CLI에는 동일 입력만 전달하고, 독립 초안 단계에 서로의 답변을 보여주지 않는다.
 - 중첩 Claude 실행 제한이 있으면 우회하지 않고 해당 참여자만 제외한다.
