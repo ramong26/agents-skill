@@ -22,6 +22,7 @@ disable-model-invocation: true
 - 실행 시 [실행 규약](references/execution.md)을 읽어 입력·명령·기록 경로를 확인한다.
 - 기존 CLI 로그인을 사용해 바로 요청한다. 사용자에게 사용량·과금 설정 확인이나 실행 허용 목록을 요구하지 않는다. 인증·오류·과금 한계를 설명할 때만 [계정·오류 안내](references/account-checks.md)를 읽는다.
 - 현재 총괄이 Codex이면 [Codex 안내](providers/codex/instructions.md), Claude Code이면 [Claude 안내](providers/claude/instructions.md), Antigravity CLI(`agy`)이면 [Gemini 안내](providers/gemini/instructions.md)만 읽는다.
+- Codex의 Windows 제한 셸에서는 `doctor`·`draft`·`review`를 첫 호출부터 승인된 일반 사용자 환경에서 실행한다. [Codex 안내](providers/codex/instructions.md)의 호스트 권한 절차를 따르며 참여 CLI의 샌드박스·도구 제한은 유지한다.
 - 설치·갱신이 필요할 때만 [설치 안내](references/installation.md)를 읽는다.
 
 ## 공통 입력
