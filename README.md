@@ -29,6 +29,7 @@
 | `git-workflow`                  | 브랜치, 커밋, PR의 이름·형식과 작업 절차를 관리합니다.                                                                                     |
 | `agent-docs-structure`          | 에이전트가 읽는 `docs/tasks` + `docs/structure` 문서 구조를 세우고 진행 상태를 동기화·점검합니다.                                          |
 | `development-planning-document` | 개발 요청·기능명세서를 개발자용 상세 기획서로 정리하고, 3개 전문 에이전트의 병렬 초안을 팀장이 통합·검증합니다.                            |
+| `requirements-kit`             | 착수 전에 킥오프 질문·1-pager·완료 기준으로 요청자와 합의하고, 확인 전 화면 코드 작성과 확인 없는 흐름 변경을 막습니다. |
 | `accessibility-review`          | 웹 접근성, 키보드 사용, 스크린리더 지원을 검토합니다.                                                                                      |
 | `frontend-fundamental-review`   | 프론트엔드 코드의 가독성, 응집도, 결합도, 예측 가능성을 리뷰합니다.                                                                        |
 | `frontend-react-performance`    | React·Next.js의 렌더링, 데이터 로딩, 번들 및 성능 문제를 다룹니다.                                                                         |
